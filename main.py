@@ -4,6 +4,8 @@ import numpy as np
 from copy import deepcopy
 
 # TODO: fix problem with snake head hitting two apples within 'self.spawn_delay' nr. of frames
+# TODO: fix body block spawning wrong position
+
 
 class SnakeApp:
     def __init__(self):
@@ -15,10 +17,12 @@ class SnakeApp:
         self.fps = pygame.time.Clock()
 
         self.snake_block_surf = None
-        self.snake_block_reacts = []
+        self.max_nr_snake_blocks = 400
+        self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
+        self.current_snake_blocks = 1
         self.snake_block_size = self.snake_block_width, self.snake_block_height = 35, 35
 
-        self.snake_velocity = 5  # pixels pr. frame
+        self.snake_velocity = 1  # pixels pr. frame
         self.snake_head_direction = None
         self.snake_head_history = []
         self.spawn_delay = int(self.snake_block_height/self.snake_velocity)
@@ -53,9 +57,9 @@ class SnakeApp:
 
         # Loading in graphics for snake
         self.snake_block_surf = pygame.image.load("media/snake_block.png").convert_alpha()
-        self.snake_block_reacts.append(self.snake_block_surf.get_rect())
-        self.snake_block_reacts[0].centerx = int(self.screen_width/2)
-        self.snake_block_reacts[0].centery = int(self.screen_height/2)
+        self.snake_block_reacts[self.current_snake_blocks-1] = self.snake_block_surf.get_rect()
+        self.snake_block_reacts[self.current_snake_blocks-1].centerx = int(self.screen_width/2)
+        self.snake_block_reacts[self.current_snake_blocks-1].centery = int(self.screen_height/2)
 
         # Loading in graphics for apple
         self.apple_block_surf = pygame.image.load("media/apple.png").convert_alpha()
@@ -64,19 +68,26 @@ class SnakeApp:
     def spawn_snake_block(self):
         self.spawn_snake_block_flag = False
         snake_block = self.snake_block_surf.get_rect()
-        if self.snake_head_direction == 'right':
-            snake_block.centerx = self.snake_block_reacts[-1].left - self.snake_block_width//2
-            snake_block.centery = self.snake_block_reacts[-1].centery
-        elif self.snake_head_direction == 'left':
-            snake_block.centerx = self.snake_block_reacts[-1].right + self.snake_block_width//2
-            snake_block.centery = self.snake_block_reacts[-1].centery
-        elif self.snake_head_direction == 'up':
-            snake_block.centerx = self.snake_block_reacts[-1].centerx
-            snake_block.centery = self.snake_block_reacts[-1].bottom + self.snake_block_height//2
-        elif self.snake_head_direction == 'down':
-            snake_block.centerx = self.snake_block_reacts[-1].centerx
-            snake_block.centery = self.snake_block_reacts[-1].top - self.snake_block_height//2
-        self.snake_block_reacts.append(snake_block)
+        index = self.current_snake_blocks-1
+        if self.snake_head_history[0][2] == 'right':
+            print("snake moving right")
+            snake_block.centerx = self.snake_block_reacts[index].centerx - self.snake_block_width
+            snake_block.centery = self.snake_block_reacts[index].centery
+        elif self.snake_head_history[0][2] == 'left':
+            print("snake moving left")
+            snake_block.centerx = self.snake_block_reacts[index].centerx + self.snake_block_width
+            snake_block.centery = self.snake_block_reacts[index].centery
+        elif self.snake_head_history[0][2] == 'up':
+            print("snake moving up")
+            snake_block.centerx = self.snake_block_reacts[index].centerx
+            snake_block.centery = self.snake_block_reacts[index].centery + self.snake_block_height
+        elif self.snake_head_history[0][2] == 'down':
+            print("snake moving down")
+            snake_block.centerx = self.snake_block_reacts[index].centerx
+            snake_block.centery = self.snake_block_reacts[index].centery - self.snake_block_height
+        self.snake_block_reacts[self.current_snake_blocks] = snake_block
+        self.current_snake_blocks += 1
+        self.print_snake_pos()
 
     def spawn_apple(self):
         if self.spawn_apple_flag:
@@ -89,7 +100,7 @@ class SnakeApp:
             while overlapping_snake:
                 self.apple_block_react.centerx = np.random.randint(low=x_min, high=x_max, size=1)[0]
                 self.apple_block_react.centery = np.random.randint(low=y_min, high=y_max, size=1)[0]
-                for snake_block in range(len(self.snake_block_reacts)):
+                for snake_block in range(self.current_snake_blocks):
                     if pygame.Rect.colliderect(self.apple_block_react, self.snake_block_reacts[snake_block]):
                         overlapping_snake = True
                     else:
@@ -103,33 +114,42 @@ class SnakeApp:
         self.score_value_react.centerx, self.score_value_react.centery = current_x, current_y
 
     def update_snake_head_position(self):
-        if self.snake_head_direction == "right":
-            self.snake_block_reacts[0] = self.snake_block_reacts[0].move(self.snake_velocity, 0)
-        elif self.snake_head_direction == "left":
-            self.snake_block_reacts[0] = self.snake_block_reacts[0].move(-self.snake_velocity, 0)
-        elif self.snake_head_direction == "up":
-            self.snake_block_reacts[0] = self.snake_block_reacts[0].move(0, -self.snake_velocity)
-        elif self.snake_head_direction == "down":
-            self.snake_block_reacts[0] = self.snake_block_reacts[0].move(0, self.snake_velocity)
+        if not self.snake_2_wall_collision_detection():
+            if self.snake_head_direction == "right":
+                self.snake_block_reacts[0] = self.snake_block_reacts[0].move(self.snake_velocity, 0)
+            elif self.snake_head_direction == "left":
+                self.snake_block_reacts[0] = self.snake_block_reacts[0].move(-self.snake_velocity, 0)
+            elif self.snake_head_direction == "up":
+                self.snake_block_reacts[0] = self.snake_block_reacts[0].move(0, -self.snake_velocity)
+            elif self.snake_head_direction == "down":
+                self.snake_block_reacts[0] = self.snake_block_reacts[0].move(0, self.snake_velocity)
 
     def update_snake_body_position(self):
-        if len(self.snake_block_reacts) > 1:
-            for snake_body_block in range(1, len(self.snake_block_reacts)):
-                history_index = snake_body_block * self.spawn_delay
-                self.snake_block_reacts[snake_body_block].centerx = self.snake_head_history[history_index][0]
-                self.snake_block_reacts[snake_body_block].centery = self.snake_head_history[history_index][1]
+        if not self.snake_2_wall_collision_detection():
+            if self.current_snake_blocks > 1:
+                for snake_body_block in range(1, self.current_snake_blocks):
+                    history_index = snake_body_block * self.spawn_delay
+                    history_len = len(self.snake_head_history) - 1
+                    self.snake_block_reacts[snake_body_block].centerx = self.snake_head_history[history_len - history_index][0]
+                    self.snake_block_reacts[snake_body_block].centery = self.snake_head_history[history_len - history_index][1]
 
     def update_counters(self):
         pass
 
     def save_snake_head_history(self):
         self.snake_head_history.append([self.snake_block_reacts[0].centerx,
-                                        self.snake_block_reacts[0].centery])
+                                        self.snake_block_reacts[0].centery,
+                                        self.snake_head_direction])
 
     def update_snake_head_history(self):
-        history_length = len(self.snake_block_reacts) * self.spawn_delay
+        history_length = self.current_snake_blocks * self.spawn_delay
         if len(self.snake_head_history) > history_length:
             self.snake_head_history = self.snake_head_history[(len(self.snake_head_history) - history_length):]
+
+    def print_snake_pos(self):
+        for i in range(self.current_snake_blocks):
+            print("snake: ", i+1, "pos: ", self.snake_block_reacts[i].centerx,
+                                           self.snake_block_reacts[i].centery)
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
@@ -154,18 +174,31 @@ class SnakeApp:
             self.spawn_snake_block_flag = True
             self.update_score()
 
+    def snake_2_wall_collision_detection(self):
+        x_min, x_max = self.frame_width, self.screen_width-self.frame_width
+        y_min, y_max = self.frame_width, self.screen_width-self.frame_width
+        snake_head = self.snake_block_reacts[0]
+        if snake_head.left < x_min or snake_head.right > x_max:
+            print("Wall collision!!")
+            return True
+        elif snake_head.bottom > y_max or snake_head.top < y_min:
+            print("Wall collision!!")
+            return True
+        return False
+
     def in_game_render(self):
         # Rendering background
         self.display_surf.blit(self.background_surf, (0, 0))
         # Rendering snake
-        for snake_block in self.snake_block_reacts:
-            self.display_surf.blit(self.snake_block_surf, snake_block)
+        for snake_block in range(self.current_snake_blocks):
+            self.display_surf.blit(self.snake_block_surf, self.snake_block_reacts[snake_block])
         # Rendering apple
         self.display_surf.blit(self.apple_block_surf, self.apple_block_react)
         # Rendering score text
         self.display_surf.blit(self.score_text_surface, self.score_text_react)
         # Rendering score value
         self.display_surf.blit(self.score_value_surface, self.score_value_react)
+        self.fps.tick(100)
         pygame.display.flip()  # This is needed for image to show up ??
 
     @staticmethod
