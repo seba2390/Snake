@@ -208,7 +208,7 @@ class SnakeApp:
             for snake_body_index in range(1, self.current_snake_blocks):
                 snake_body = self.snake_block_reacts[snake_body_index]
                 dist = np.sqrt((snake_head.centerx - snake_body.centerx)**2 + (snake_head.centery - snake_body.centery)**2)
-                if dist < 2/3 * self.snake_block_width:
+                if dist < 0.72 * self.snake_block_width:
                     self.game_over = True
 
     def update_game_over_react(self):
