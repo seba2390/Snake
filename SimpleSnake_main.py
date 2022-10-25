@@ -37,7 +37,7 @@ class SimpleSnakeApp:
         self.score_board_font = pygame.font.Font("media/my_font.ttf", 25)
         self.score_text_surface = self.score_board_font.render("score: ", True, self.text_color, None)
         self.score_text_react = self.score_text_surface.get_rect()
-        self.score_text_react.left = 15
+        self.score_text_react.left = 30
         self.score_text_react.top = 5
 
         self.current_score = 0
