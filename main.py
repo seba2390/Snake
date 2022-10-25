@@ -48,6 +48,33 @@ class SnakeApp:
         self.score_value_react.left = self.score_text_react.right + 10
         self.score_value_react.bottom = self.screen_height - self.frame_width - 5
 
+        self.game_over_font = pygame.font.Font("media/arcade_classic.ttf", 35)
+        self.game_over_background_surf = None
+        self.game_over_text_surface = self.game_over_font.render("Game Over", True, self.text_color, None)
+        self.game_over_text_react = self.game_over_text_surface.get_rect()
+        self.game_over_text_react.centerx = int(self.screen_width/2) + 3
+        self.game_over_text_react.centery = int(self.screen_height/2)
+        self.game_over_anim_duration = 25
+        self.game_over_anim_counter = 0
+        self.game_over_position = "down"
+
+        # light shade of the button
+        self.restart_button_color_light = (170, 170, 170)
+        # dark shade of the button
+        self.restart_button_color_dark = (100, 100, 100)
+        self.restart_button_width = 240
+        self.restart_button_height = 60
+        self.restart_button_dims = [self.screen_width / 2 - self.restart_button_width/2,
+                                    self.screen_height / 2 + int(1.3*self.restart_button_height),
+                                    self.restart_button_width,
+                                    self.restart_button_height]
+
+        self.restart_font = pygame.font.Font("media/arcade_classic.ttf", 30)
+        self.restart_text_surface = self.restart_font.render("restart", True, self.text_color, None)
+        self.restart_text_react = self.restart_text_surface.get_rect()
+        self.restart_text_react.centerx = int(self.screen_width/2) + 3
+        self.restart_text_react.centery = int(self.screen_height/2) + int(1.85*self.restart_button_height)
+
     def on_init(self):
         # Initializing pygame and loading in graphics for background
         pygame.init()
@@ -55,6 +82,7 @@ class SnakeApp:
         self.display_surf = pygame.display.set_mode(size=self.screen_size,
                                                     flags=(pygame.HWSURFACE or pygame.DOUBLEBUF))
         self.background_surf = pygame.image.load("media/background.png").convert()
+        self.game_over_background_surf = pygame.image.load("media/background.png").convert()
 
         # Loading in graphics for snake
         self.snake_block_surf = pygame.image.load("media/snake_block.png").convert_alpha()
@@ -183,6 +211,27 @@ class SnakeApp:
                 if dist < 2/3 * self.snake_block_width:
                     self.game_over = True
 
+    def update_game_over_react(self):
+        """ Animating game over text """
+        if self.game_over_anim_counter == self.game_over_anim_duration:
+            self.game_over_anim_counter = 0
+            if self.game_over_position == 'down':
+                self.game_over_text_react.centery += 5
+                self.game_over_position = 'up'
+            else:
+                self.game_over_text_react.centery -= 5
+                self.game_over_position = 'down'
+
+    def game_over_reset(self):
+        self.game_over = False
+        self.snake_head_direction = None
+        self.current_snake_blocks = 1
+        self.current_score = 0
+        self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
+        self.snake_block_reacts[self.current_snake_blocks-1] = self.snake_block_surf.get_rect()
+        self.snake_block_reacts[self.current_snake_blocks-1].centerx = int(self.screen_width/2)
+        self.snake_block_reacts[self.current_snake_blocks-1].centery = int(self.screen_height/2)
+
     def in_game_render(self):
         # Rendering background
         self.display_surf.blit(self.background_surf, (0, 0))
@@ -199,8 +248,11 @@ class SnakeApp:
 
     def game_over_render(self):
         # Rendering background
-        self.display_surf.blit(self.background_surf, (0, 0))
+        self.display_surf.blit(self.game_over_background_surf, (0, 0))
+        self.display_surf.blit(self.game_over_text_surface, self.game_over_text_react)
+        self.display_surf.blit(self.restart_text_surface, self.restart_text_react)
         pygame.display.flip()  # This is needed for image to show up ??
+
 
     @staticmethod
     def on_cleanup():
@@ -231,7 +283,23 @@ class SnakeApp:
 
                 self.in_game_render()
             else:
+                mouse_position = pygame.mouse.get_pos()
+                if self.restart_button_dims[0] <= mouse_position[0] <= self.restart_button_dims[
+                    0] + self.restart_button_width \
+                        and self.restart_button_dims[1] <= mouse_position[1] <= self.restart_button_dims[
+                    1] + self.restart_button_height:
+                    pygame.draw.rect(self.game_over_background_surf, self.restart_button_color_light,
+                                     self.restart_button_dims)
+                    left, middle, right = pygame.mouse.get_pressed()
+                    if left:
+                        self.game_over_reset()
+                else:
+                    pygame.draw.rect(self.game_over_background_surf, self.restart_button_color_dark,
+                                     self.restart_button_dims)
+
                 self.game_over_render()
+                self.update_game_over_react()
+                self.game_over_anim_counter += 1
 
         self.on_cleanup()
 
