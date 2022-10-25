@@ -22,7 +22,7 @@ class SnakeApp:
         self.current_snake_blocks = 1
         self.snake_block_size = self.snake_block_width, self.snake_block_height = 35, 35
 
-        self.snake_velocity = 1  # pixels pr. frame
+        self.snake_velocity = 2  # pixels pr. frame
         self.snake_head_direction = None
         self.snake_head_history = []
         self.spawn_delay = int(self.snake_block_height/self.snake_velocity)
@@ -32,6 +32,7 @@ class SnakeApp:
         self.apple_block_react = None
         self.apple_block_size = self.apple_block_width, self.apple_block_height = 35, 35
         self.spawn_apple_flag = True
+        self.game_over = False
 
         pygame.font.init()
         self.text_color = (255, 255, 255)  # White
@@ -70,24 +71,19 @@ class SnakeApp:
         snake_block = self.snake_block_surf.get_rect()
         index = self.current_snake_blocks-1
         if self.snake_head_history[0][2] == 'right':
-            print("snake moving right")
             snake_block.centerx = self.snake_block_reacts[index].centerx - self.snake_block_width
             snake_block.centery = self.snake_block_reacts[index].centery
         elif self.snake_head_history[0][2] == 'left':
-            print("snake moving left")
             snake_block.centerx = self.snake_block_reacts[index].centerx + self.snake_block_width
             snake_block.centery = self.snake_block_reacts[index].centery
         elif self.snake_head_history[0][2] == 'up':
-            print("snake moving up")
             snake_block.centerx = self.snake_block_reacts[index].centerx
             snake_block.centery = self.snake_block_reacts[index].centery + self.snake_block_height
         elif self.snake_head_history[0][2] == 'down':
-            print("snake moving down")
             snake_block.centerx = self.snake_block_reacts[index].centerx
             snake_block.centery = self.snake_block_reacts[index].centery - self.snake_block_height
         self.snake_block_reacts[self.current_snake_blocks] = snake_block
         self.current_snake_blocks += 1
-        self.print_snake_pos()
 
     def spawn_apple(self):
         if self.spawn_apple_flag:
@@ -133,9 +129,6 @@ class SnakeApp:
                     self.snake_block_reacts[snake_body_block].centerx = self.snake_head_history[history_len - history_index][0]
                     self.snake_block_reacts[snake_body_block].centery = self.snake_head_history[history_len - history_index][1]
 
-    def update_counters(self):
-        pass
-
     def save_snake_head_history(self):
         self.snake_head_history.append([self.snake_block_reacts[0].centerx,
                                         self.snake_block_reacts[0].centery,
@@ -145,11 +138,6 @@ class SnakeApp:
         history_length = self.current_snake_blocks * self.spawn_delay
         if len(self.snake_head_history) > history_length:
             self.snake_head_history = self.snake_head_history[(len(self.snake_head_history) - history_length):]
-
-    def print_snake_pos(self):
-        for i in range(self.current_snake_blocks):
-            print("snake: ", i+1, "pos: ", self.snake_block_reacts[i].centerx,
-                                           self.snake_block_reacts[i].centery)
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
@@ -179,12 +167,21 @@ class SnakeApp:
         y_min, y_max = self.frame_width, self.screen_width-self.frame_width
         snake_head = self.snake_block_reacts[0]
         if snake_head.left < x_min or snake_head.right > x_max:
-            print("Wall collision!!")
+            self.game_over = True
             return True
         elif snake_head.bottom > y_max or snake_head.top < y_min:
-            print("Wall collision!!")
+            self.game_over = True
             return True
         return False
+
+    def snake_2_snake_collision_detection(self):
+        if self.current_snake_blocks > 1:
+            snake_head = self.snake_block_reacts[0]
+            for snake_body_index in range(1, self.current_snake_blocks):
+                snake_body = self.snake_block_reacts[snake_body_index]
+                dist = np.sqrt((snake_head.centerx - snake_body.centerx)**2 + (snake_head.centery - snake_body.centery)**2)
+                if dist < 2/3 * self.snake_block_width:
+                    self.game_over = True
 
     def in_game_render(self):
         # Rendering background
@@ -198,7 +195,11 @@ class SnakeApp:
         self.display_surf.blit(self.score_text_surface, self.score_text_react)
         # Rendering score value
         self.display_surf.blit(self.score_value_surface, self.score_value_react)
-        self.fps.tick(100)
+        pygame.display.flip()  # This is needed for image to show up ??
+
+    def game_over_render(self):
+        # Rendering background
+        self.display_surf.blit(self.background_surf, (0, 0))
         pygame.display.flip()  # This is needed for image to show up ??
 
     @staticmethod
@@ -213,21 +214,24 @@ class SnakeApp:
             for event in pygame.event.get():
                 self.on_event(event)
 
-            self.update_snake_head_history()
-            self.update_snake_head_position()
-            self.snake_2_apple_collision_detection()
+            if not self.game_over:
+                self.update_snake_head_history()
+                self.update_snake_head_position()
+                self.snake_2_apple_collision_detection()
+                self.snake_2_snake_collision_detection()
 
-            if self.spawn_snake_block_flag:
-                self.spawn_snake_block()
+                if self.spawn_snake_block_flag:
+                    self.spawn_snake_block()
 
-            if self.spawn_apple_flag:
-                self.spawn_apple()
+                if self.spawn_apple_flag:
+                    self.spawn_apple()
 
-            self.save_snake_head_history()
-            self.update_snake_body_position()
+                self.save_snake_head_history()
+                self.update_snake_body_position()
 
-            self.update_counters()
-            self.in_game_render()
+                self.in_game_render()
+            else:
+                self.game_over_render()
 
         self.on_cleanup()
 
