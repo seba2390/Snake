@@ -3,8 +3,7 @@ from pygame.locals import *
 import numpy as np
 from copy import deepcopy
 
-# TODO: fix problem with snake head hitting two apples within 'self.spawn_delay' nr. of frames
-# TODO: fix body block spawning wrong position
+# TODO: fix problem with snake head hitting two apples within 'self.spawn_delay' nr. of frames (quick fix. by distance of apple spawn)
 
 
 class SnakeApp:
@@ -120,6 +119,7 @@ class SnakeApp:
             x_max = self.screen_width - self.frame_width - int(self.apple_block_width / 2)
             y_min = self.frame_width + int(self.apple_block_height / 2)
             y_max = self.screen_width - self.frame_width - int(self.apple_block_height / 2)  # Using screen width to stay inside square area
+            snake_head = self.snake_block_reacts[0]
             overlapping_snake = True
             while overlapping_snake:
                 self.apple_block_react.centerx = np.random.randint(low=x_min, high=x_max, size=1)[0]
@@ -227,6 +227,10 @@ class SnakeApp:
         self.snake_head_direction = None
         self.current_snake_blocks = 1
         self.current_score = 0
+        current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
+        self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color, None)
+        self.score_value_react = self.score_value_surface.get_rect()
+        self.score_value_react.centerx, self.score_value_react.centery = current_x, current_y
         self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
         self.snake_block_reacts[self.current_snake_blocks-1] = self.snake_block_surf.get_rect()
         self.snake_block_reacts[self.current_snake_blocks-1].centerx = int(self.screen_width/2)
