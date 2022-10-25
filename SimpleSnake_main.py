@@ -34,17 +34,39 @@ class SimpleSnakeApp:
 
         pygame.font.init()
         self.text_color = (255, 255, 255)  # White
-        self.score_board_font = pygame.font.Font("media/arcade_classic.ttf", 20)
+        self.score_board_font = pygame.font.Font("media/my_font.ttf", 25)
         self.score_text_surface = self.score_board_font.render("score: ", True, self.text_color, None)
         self.score_text_react = self.score_text_surface.get_rect()
-        self.score_text_react.left = 5
+        self.score_text_react.left = 15
         self.score_text_react.top = 5
 
         self.current_score = 0
         self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color, None)
         self.score_value_react = self.score_value_surface.get_rect()
-        self.score_value_react.left = self.score_text_react.right + 10
+        self.score_value_react.left = self.score_text_react.right + 20
         self.score_value_react.top = 5
+
+        self.deaths_text_surface = self.score_board_font.render("deaths: ", True, self.text_color, None)
+        self.deaths_text_react = self.deaths_text_surface.get_rect()
+        self.deaths_text_react.left = self.screen_width // 2 - 55
+        self.deaths_text_react.top = 5
+
+        self.nr_deaths = 0
+        self.deaths_value_surface = self.score_board_font.render(str(self.nr_deaths), True, self.text_color, None)
+        self.deaths_value_react = self.deaths_value_surface.get_rect()
+        self.deaths_value_react.left = self.screen_width // 2 + 30
+        self.deaths_value_react.top = 5
+
+        self.record_text_surface = self.score_board_font.render("record: ", True, self.text_color, None)
+        self.record_text_react = self.record_text_surface.get_rect()
+        self.record_text_react.left = self.screen_width - 120
+        self.record_text_react.top = 5
+
+        self.record = 0
+        self.record_value_surface = self.score_board_font.render(str(self.nr_deaths), True, self.text_color, None)
+        self.record_value_react = self.record_value_surface.get_rect()
+        self.record_value_react.left = self.screen_width - 45
+        self.record_value_react.top = 5
 
         self.ratio = self.screen_width / self.snake_block_width - 1
 
@@ -54,7 +76,7 @@ class SimpleSnakeApp:
         self.running = True
         self.display_surf = pygame.display.set_mode(size=self.screen_size,
                                                     flags=(pygame.HWSURFACE or pygame.DOUBLEBUF))
-        self.background_surf = pygame.image.load("media/background.png").convert()
+        self.background_surf = pygame.image.load("media/background 2.png").convert()
 
         # Loading in graphics for snake
         self.snake_block_surf = pygame.image.load("media/snake_block.png").convert_alpha()
@@ -106,7 +128,7 @@ class SimpleSnakeApp:
                     overlapping_snake = False
 
     def update_score(self):
-        self.current_score += 10
+        self.current_score += 1
         current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
         self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color, None)
         self.score_value_react = self.score_value_surface.get_rect()
@@ -181,17 +203,32 @@ class SimpleSnakeApp:
                     self.game_over = True
 
     def game_over_reset(self):
+        self.nr_deaths += 1
+        if self.current_score > self.record:
+            self.record = self.current_score
         self.game_over = False
         self.snake_head_direction = None
         self.current_snake_blocks = 1
         self.current_score = 0
+
         current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
         self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color, None)
         self.score_value_react = self.score_value_surface.get_rect()
         self.score_value_react.centerx, self.score_value_react.centery = current_x, current_y
+
+        current_x, current_y = self.deaths_value_react.centerx, self.deaths_value_react.centery
+        self.deaths_value_surface = self.score_board_font.render(str(self.nr_deaths), True, self.text_color, None)
+        self.deaths_value_react = self.deaths_value_surface.get_rect()
+        self.deaths_value_react.centerx, self.deaths_value_react.centery = current_x, current_y
+
+        current_x, current_y = self.record_value_react.centerx, self.record_value_react.centery
+        self.record_value_surface = self.score_board_font.render(str(self.record), True, self.text_color, None)
+        self.record_value_react = self.record_value_surface.get_rect()
+        self.record_value_react.centerx, self.record_value_react.centery = current_x, current_y
+
+        # Respawning snake
         self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
         self.snake_block_reacts[self.current_snake_blocks-1] = self.snake_block_surf.get_rect()
-
         self.snake_block_reacts[self.current_snake_blocks-1].left = np.random.randint(low=0, high=self.ratio, size=1)[0]
         self.snake_block_reacts[self.current_snake_blocks-1].top = np.random.randint(low=0, high=self.ratio, size=1)[0]
         self.snake_block_reacts[self.current_snake_blocks - 1].left *= self.snake_block_width
@@ -209,6 +246,15 @@ class SimpleSnakeApp:
         self.display_surf.blit(self.score_text_surface, self.score_text_react)
         # Rendering score value
         self.display_surf.blit(self.score_value_surface, self.score_value_react)
+        # Rendering nr deaths text
+        self.display_surf.blit(self.deaths_text_surface, self.deaths_text_react)
+        # Rendering nr deaths value
+        self.display_surf.blit(self.deaths_value_surface, self.deaths_value_react)
+        # Rendering record text
+        self.display_surf.blit(self.record_text_surface, self.record_text_react)
+        # Rendering record value
+        self.display_surf.blit(self.record_value_surface, self.record_value_react
+                               )
         self.fps.tick(20)
         pygame.display.flip()  # This is needed for image to show up ??
 

@@ -36,7 +36,7 @@ class SnakeApp:
 
         pygame.font.init()
         self.text_color = (255, 255, 255)  # White
-        self.score_board_font = pygame.font.Font("media/arcade_classic.ttf", 30)
+        self.score_board_font = pygame.font.Font("media/my_font.ttf", 30)
         self.score_text_surface = self.score_board_font.render("score: ", True, self.text_color, None)
         self.score_text_react = self.score_text_surface.get_rect()
         self.score_text_react.left = self.frame_width + 5
@@ -48,7 +48,7 @@ class SnakeApp:
         self.score_value_react.left = self.score_text_react.right + 10
         self.score_value_react.bottom = self.screen_height - self.frame_width - 5
 
-        self.game_over_font = pygame.font.Font("media/arcade_classic.ttf", 35)
+        self.game_over_font = pygame.font.Font("media/my_font.ttf", 35)
         self.game_over_background_surf = None
         self.game_over_text_surface = self.game_over_font.render("Game Over", True, self.text_color, None)
         self.game_over_text_react = self.game_over_text_surface.get_rect()
@@ -69,7 +69,7 @@ class SnakeApp:
                                     self.restart_button_width,
                                     self.restart_button_height]
 
-        self.restart_font = pygame.font.Font("media/arcade_classic.ttf", 30)
+        self.restart_font = pygame.font.Font("media/my_font.ttf", 30)
         self.restart_text_surface = self.restart_font.render("restart", True, self.text_color, None)
         self.restart_text_react = self.restart_text_surface.get_rect()
         self.restart_text_react.centerx = int(self.screen_width/2) + 3
