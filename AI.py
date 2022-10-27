@@ -647,6 +647,7 @@ if __name__ == "__main__":
     # for reproducibility
     my_seed = 2786
     np.random.seed(my_seed)
+    torch.manual_seed(my_seed)
 
     loss_means = []
     highest_scores = []
@@ -678,7 +679,7 @@ if __name__ == "__main__":
     highest_scores.append(np.max(scores))
     loss_means.append(np.mean(losses))
 
-    nr_generations = 5
+    nr_generations = 2
     nr_replays = 2
     nr_best = 3
     lr = 0.00000001
@@ -697,18 +698,21 @@ if __name__ == "__main__":
             losses = []
             scores = []
             for agent in range(len(agents)):
-                theApp = SimpleSnakeApp(seed=my_seed+len(agents)+agent,
+                theApp = SimpleSnakeApp(seed=my_seed+len(agents)*(replay+1)+agent,
                                         neural_net=agents[agent],
                                         display_gameplay=False)
                 theApp.on_execute()
                 losses.append(theApp.loss)
                 scores.append(theApp.current_score)
-                if theApp.current_score > 20:
-                    print("Playing w. score: ", theApp.current_score)
-                    theApp = SimpleSnakeApp(seed=my_seed+len(agents)+agent,
-                                            neural_net=agents[agent],
-                                            display_gameplay=True)
-                    theApp.on_execute()
+                if theApp.current_score > 40:
+                    user_input = input("See game? (yY/nN) ?")
+                    if user_input == "y" or user_input == "Y":
+                        print("Playing w. score: ", theApp.current_score)
+
+                        theApp = SimpleSnakeApp(seed=my_seed+len(agents)*(replay+1)+agent,
+                                                neural_net=agents[agent],
+                                                display_gameplay=True)
+                        theApp.on_execute()
             _agents = agents
             _best_agents = np.array(_agents)[np.argsort(np.array(losses))][:nr_best]
             _losses = losses
