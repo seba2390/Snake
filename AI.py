@@ -591,7 +591,7 @@ class SimpleSnakeApp:
                         print("Snake 2 snake danger up")
             # Danger down
             if np.abs(self.snake_block_reacts[0].dottom - self.snake_block_reacts[snake_body].top) <= self.snake_block_height:
-                if self.snake_block_reacts[snake_body].top < self.snake_block_reacts[0].bottom:
+                if self.snake_block_reacts[snake_body].top > self.snake_block_reacts[0].bottom:
                     _obstacle_state[1] = 1
                     if self.display_gameplay:
                         print("Snake 2 snake danger down")
@@ -607,8 +607,6 @@ class SimpleSnakeApp:
                     _obstacle_state[3] = 1
                     if self.display_gameplay:
                         print("Snake 2 snake danger right")
-
-
 
         _own_state = [0, 0, 0, 0]
         if self.snake_head_direction == "up":  # Moving up
