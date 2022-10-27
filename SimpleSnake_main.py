@@ -11,24 +11,24 @@ class SimpleSnakeApp:
         self.running = True
         self.display_surf = None
         self.background_surf = None
-        self.screen_size = self.screen_width, self.screen_height = 700, 700
+        self.screen_size = self.screen_width, self.screen_height = 690, 690
         self.fps = pygame.time.Clock()
 
         self.snake_block_surf = None
         self.max_nr_snake_blocks = 400
         self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
         self.current_snake_blocks = 1
-        self.snake_block_size = self.snake_block_width, self.snake_block_height = 35, 35
+        self.snake_block_size = self.snake_block_width, self.snake_block_height = 30, 30
 
-        self.snake_velocity = 35  # pixels pr. frame
-        self.snake_head_direction = None
+        self.snake_velocity = 30  # pixels pr. frame
+        self.snake_head_direction = "up"
         self.snake_head_history = []
         self.spawn_delay = int(self.snake_block_height/self.snake_velocity)
         self.spawn_snake_block_flag = False
 
         self.apple_block_surf = None
         self.apple_block_react = None
-        self.apple_block_size = self.apple_block_width, self.apple_block_height = 35, 35
+        self.apple_block_size = self.apple_block_width, self.apple_block_height = 30, 30
         self.spawn_apple_flag = True
         self.game_over = False
 
@@ -76,10 +76,10 @@ class SimpleSnakeApp:
         self.running = True
         self.display_surf = pygame.display.set_mode(size=self.screen_size,
                                                     flags=(pygame.HWSURFACE or pygame.DOUBLEBUF))
-        self.background_surf = pygame.image.load("media/background 2.png").convert()
+        self.background_surf = pygame.image.load("media/background_2.png").convert()
 
         # Loading in graphics for snake
-        self.snake_block_surf = pygame.image.load("media/snake_block.png").convert_alpha()
+        self.snake_block_surf = pygame.image.load("media/snake_block_2.png").convert_alpha()
         self.snake_block_reacts[self.current_snake_blocks-1] = self.snake_block_surf.get_rect()
 
         ratio = self.screen_width / self.snake_block_width - 1
@@ -89,7 +89,7 @@ class SimpleSnakeApp:
         self.snake_block_reacts[self.current_snake_blocks - 1].top *= self.snake_block_height
 
         # Loading in graphics for apple
-        self.apple_block_surf = pygame.image.load("media/apple.png").convert_alpha()
+        self.apple_block_surf = pygame.image.load("media/apple_2.png").convert_alpha()
         self.apple_block_react = self.snake_block_surf.get_rect()
 
     def spawn_snake_block(self):
@@ -255,7 +255,7 @@ class SimpleSnakeApp:
         # Rendering record value
         self.display_surf.blit(self.record_value_surface, self.record_value_react
                                )
-        self.fps.tick(20)
+        self.fps.tick(10)
         pygame.display.flip()  # This is needed for image to show up ??
 
     @staticmethod
