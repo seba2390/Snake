@@ -542,7 +542,7 @@ class SimpleSnakeApp:
         if self.snake_block_reacts[0].left <= self.snake_block_width:  # Danger left
             _obstacle_state[2] = 1
         if self.snake_block_reacts[0].right >= self.screen_width - self.snake_block_width:  # Danger right
-            _obstacle_state[3] = 0
+            _obstacle_state[3] = 1
 
         _own_state = [0, 0, 0, 0]
         if self.snake_head_direction == "up":  # Moving up
@@ -648,7 +648,7 @@ if __name__ == "__main__":
     best_play_models = []
 
     # Initial run
-    nr_agents = 100000
+    nr_agents = 10000
     agents = [NeuralNetwork() for agent in range(nr_agents)]
     losses = []
     scores = []
@@ -672,7 +672,7 @@ if __name__ == "__main__":
     highest_scores.append(np.max(scores))
     loss_means.append(np.mean(losses))
 
-    nr_generations = 10
+    nr_generations = 3
     nr_replays = 3
     nr_best = 3
     lr = 0.00000001
@@ -691,7 +691,7 @@ if __name__ == "__main__":
             # Second run
             losses = []
             scores = []
-            for agent in tqdm(range(len(agents))):
+            for agent in range(len(agents)):
                 theApp = SimpleSnakeApp(neural_net=agents[agent],
                                         display_gameplay=False)
                 theApp.on_execute()
