@@ -461,6 +461,7 @@ class SimpleSnakeApp:
                 snake_body = self.snake_block_reacts[snake_body_index]
                 if self.display_gameplay:
                     if pygame.Rect.colliderect(snake_head, snake_body):
+                        print("NÅR SLANGEN RAMMER SLANGEN HEHE")
                         self.game_over = True
                 else:
                     if FakeColliderect(snake_head, snake_body):
@@ -488,7 +489,7 @@ class SimpleSnakeApp:
             # Rendering record value
             self.display_surf.blit(self.record_value_surface, self.record_value_react
                                    )
-            self.fps.tick(20)
+            self.fps.tick(60)
             pygame.display.flip()  # This is needed for image to show up ??
 
     def get_state(self):
@@ -567,6 +568,70 @@ class SimpleSnakeApp:
 
         return torch.tensor(_obstacle_state + _own_state + _apple_state, dtype=torch.float32)
 
+    def get_state_4(self):
+        _obstacle_state = [0, 0, 0, 0]
+
+        # Checking against boundaries
+        if self.snake_block_reacts[0].top <= self.snake_block_height:  # Danger up
+            _obstacle_state[0] = 1
+        if self.snake_block_reacts[0].bottom >= self.screen_height - self.snake_block_height:  # Danger down
+            _obstacle_state[1] = 1
+        if self.snake_block_reacts[0].left <= self.snake_block_width:  # Danger left
+            _obstacle_state[2] = 1
+        if self.snake_block_reacts[0].right >= self.screen_width - self.snake_block_width:  # Danger right
+            _obstacle_state[3] = 1
+
+        # Checking against snake
+        for snake_body in range(2, self.snake_block_reacts):
+            # Danger up
+            if np.abs(self.snake_block_reacts[0].top - self.snake_block_reacts[snake_body].bottom) <= self.snake_block_height:
+                if self.snake_block_reacts[snake_body].bottom < self.snake_block_reacts[0].top:
+                    _obstacle_state[0] = 1
+                    if self.display_gameplay:
+                        print("Snake 2 snake danger up")
+            # Danger down
+            if np.abs(self.snake_block_reacts[0].dottom - self.snake_block_reacts[snake_body].top) <= self.snake_block_height:
+                if self.snake_block_reacts[snake_body].top < self.snake_block_reacts[0].bottom:
+                    _obstacle_state[1] = 1
+                    if self.display_gameplay:
+                        print("Snake 2 snake danger down")
+            # Danger left
+            if np.abs(self.snake_block_reacts[0].left - self.snake_block_reacts[snake_body].right) <= self.snake_block_height:
+                if self.snake_block_reacts[snake_body].right < self.snake_block_reacts[0].left:
+                    _obstacle_state[2] = 1
+                    if self.display_gameplay:
+                        print("Snake 2 snake danger left")
+            # Danger right
+            if np.abs(self.snake_block_reacts[0].right - self.snake_block_reacts[snake_body].left) <= self.snake_block_height:
+                if self.snake_block_reacts[snake_body].left > self.snake_block_reacts[0].right:
+                    _obstacle_state[3] = 1
+                    if self.display_gameplay:
+                        print("Snake 2 snake danger right")
+
+
+
+        _own_state = [0, 0, 0, 0]
+        if self.snake_head_direction == "up":  # Moving up
+            _own_state[0] = 1
+        if self.snake_head_direction == "down":  # Moving down
+            _own_state[1] = 1
+        if self.snake_head_direction == "left":  # Moving left
+            _own_state[2] = 1
+        if self.snake_head_direction == "right":  # Moving right
+            _own_state[3] = 1
+
+        _apple_state = [0, 0, 0, 0]
+        if self.apple_block_react.centery < self.snake_block_reacts[0].centery: # Apple is up from current position
+            _apple_state[0] = 1
+        if self.apple_block_react.centery > self.snake_block_reacts[0].centery: # Apple is down from current position
+            _apple_state[1] = 1
+        if self.apple_block_react.centerx < self.snake_block_reacts[0].centerx: # Apple is left from current position
+            _apple_state[2] = 1
+        if self.apple_block_react.centerx > self.snake_block_reacts[0].centerx: # Apple is right from current position
+            _apple_state[3] = 1
+
+        return torch.tensor(_obstacle_state + _own_state + _apple_state, dtype=torch.float32)
+
     def distance_2_apple(self):
         return np.sqrt((self.apple_block_react.centerx - self.snake_block_reacts[0].centerx) ** 2 + (
                     self.apple_block_react.centery - self.snake_block_reacts[0].centery) ** 2)
@@ -601,11 +666,12 @@ class SimpleSnakeApp:
                     self.on_event(event)
 
             if not self.game_over:
-                if self.break_out_counter == 1000:  # If snakes starts looping around
+                if self.break_out_counter == self.max_iterations:  # If snakes starts looping around
                     self.game_over = True
 
-                current_state = self.get_state_3()
+                current_state = self.get_state_4()
                 current_prediction = self.neural_net.forward(current_state)
+
                 current_direction = self.output_2_direction(current_prediction)
                 self.control_input(direction=current_direction)
 
@@ -623,6 +689,7 @@ class SimpleSnakeApp:
 
                 if self.spawn_apple_flag:
                     self.spawn_apple()
+                    self.break_out_counter = 0
 
                 if not self.game_over:
                     distance_2_apple = self.distance_2_apple()
@@ -666,11 +733,13 @@ if __name__ == "__main__":
         losses.append(theApp.loss)
         scores.append(theApp.current_score)
 
+    fig, ax = plt.subplots(1,1,figsize=(10,5))
     iterations = [i + 1 for i in range(nr_agents)]
-    plt.plot(iterations, losses)
-    plt.plot(iterations, losses, 'o', ms=1)
-    plt.savefig("generation_losses/" + "initial" + "_generation.pdf")
-    plt.show()
+    ax.plot(iterations, losses)
+    ax.plot(iterations, losses, 'o', ms=1)
+    ax.set_xlabel("Agent nr.")
+    ax.set_ylabel("Loss")
+    plt.savefig("generation_losses/" + str(0) + "_generation.pdf")
     plt.cla()
     plt.clf()
     plt.close()
@@ -679,47 +748,37 @@ if __name__ == "__main__":
     highest_scores.append(np.max(scores))
     loss_means.append(np.mean(losses))
 
-    nr_generations = 2
-    nr_replays = 2
-    nr_best = 3
+    nr_generations = 20
+    nr_best = 1
     lr = 0.00000001
     for generation in range(nr_generations):
-        _best_agents = np.array(agents)[np.argsort(np.array(losses))][:nr_best]
-        _agents = agents
-        _losses = losses
-        _scores = None
-        for replay in tqdm(range(nr_replays)):
-            # Picking out 'nr_best' agents and adding some mutation
-            agents = [a for a in _best_agents]
-            nr_copies = int((nr_agents / 10 - len(agents)) / len(_best_agents))
-            for best_agent in _best_agents:
-                for copy in range(nr_copies):
-                    agents.append(best_agent)
-            losses = []
-            scores = []
-            for agent in range(len(agents)):
-                theApp = SimpleSnakeApp(seed=my_seed+len(agents)*(replay+1)+agent,
+
+        # Picking out 'nr_best' agents and adding some mutation
+        best_agents = np.array(agents)[np.argsort(np.array(losses))][:nr_best]
+        agents = [a for a in best_agents]
+        nr_copies = int((nr_agents/100 - len(agents)) / len(best_agents))
+        for best_agent in best_agents:
+            for copy in range(nr_copies):
+                agents.append(best_agent)
+        losses = []
+        scores = []
+        for agent in tqdm(range(len(agents))):
+            theApp = SimpleSnakeApp(seed=my_seed+len(agents)*generation+agent,
+                                    neural_net=agents[agent],
+                                    display_gameplay=False)
+            theApp.on_execute()
+            losses.append(theApp.loss)
+            scores.append(theApp.current_score)
+            if theApp.current_score >= 40:
+                agents[agent].save_model(score=theApp.current_score)
+                print("Playing game w. score: ", theApp.current_score)
+                theApp = SimpleSnakeApp(seed=my_seed+len(agents)*generation+agent,
                                         neural_net=agents[agent],
-                                        display_gameplay=False)
+                                        display_gameplay=True)
                 theApp.on_execute()
-                losses.append(theApp.loss)
-                scores.append(theApp.current_score)
-                if theApp.current_score > 40:
-                    user_input = input("See game? (yY/nN) ?")
-                    if user_input == "y" or user_input == "Y":
-                        print("Playing w. score: ", theApp.current_score)
 
-                        theApp = SimpleSnakeApp(seed=my_seed+len(agents)*(replay+1)+agent,
-                                                neural_net=agents[agent],
-                                                display_gameplay=True)
-                        theApp.on_execute()
-            _agents = agents
-            _best_agents = np.array(_agents)[np.argsort(np.array(losses))][:nr_best]
-            _losses = losses
-            _scores = scores
-
-        nr_mutations = int((nr_agents / 10 - nr_best) / len(_best_agents))
-        for best_agent in _best_agents:
+        nr_mutations = int((nr_agents / 10 - nr_best) / len(best_agents))
+        for best_agent in best_agents:
             for mutation in range(nr_mutations):
                 mutated_agent = deepcopy(best_agent)
                 for layer_name in mutated_agent.state_dict():
@@ -729,34 +788,41 @@ if __name__ == "__main__":
                     #mutated_agent.state_dict()[layer_name] += lr*torch.rand(size=mutated_agent.state_dict()[layer_name].shape)
                 agents.append(mutated_agent)
 
-        loss_means.append(np.mean(_losses))
-        best_play_models.append(np.array(_agents)[np.argmin(_losses)])
-        highest_scores.append(np.max(_scores))
+        loss_means.append(np.mean(losses))
+        best_play_models.append(np.array(losses)[np.argmin(losses)])
+        highest_scores.append(np.max(scores))
 
         print("generation: ", generation + 1)
-        print("highest score: ", np.max(_scores))
-        highest_scores.append(np.max(_scores))
+        print("highest score: ", np.max(scores))
+        highest_scores.append(np.max(scores))
 
-        iterations = [i + 1 for i in range(len(_losses))]
-        plt.plot(iterations, _losses)
-        plt.plot(iterations, _losses, 'o', ms=1)
+        fig, ax = plt.subplots(1,1,figsize=(10,5))
+        iterations = [i + 1 for i in range(len(losses))]
+        ax.plot(iterations, losses)
+        ax.plot(iterations, losses, 'o', ms=1)
+        ax.set_xlabel("Agent nr.")
+        ax.set_ylabel("Loss")
         plt.savefig("generation_losses/" + str(generation + 1) + "_generation.pdf")
-        plt.show()
         plt.cla()
         plt.clf()
         plt.close()
 
     generations = [i + 1 for i in range(len(loss_means))]
-    plt.plot(generations, loss_means)
-    plt.plot(generations, loss_means, 'o', ms=1)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+    ax.plot(generations, loss_means)
+    ax.plot(generations, loss_means, 'o', ms=1)
+    ax.set_xlabel("Generation nr.")
+    ax.set_ylabel("Avg. loss")
     plt.savefig("generation_losses/" + "loss_means.pdf")
-    plt.xlabel("Generation")
-    plt.show()
+    plt.cla()
+    plt.clf()
+    plt.close()
 
     generations = [i + 1 for i in range(len(highest_scores))]
-    plt.plot(generations, highest_scores)
-    plt.plot(generations, highest_scores, 'o', ms=1)
-    plt.xlabel("Generation")
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+    ax.plot(generations, highest_scores)
+    ax.plot(generations, highest_scores, 'o', ms=1)
+    ax.set_xlabel("Generation nr.")
+    ax.set_ylabel("Highest score")
     plt.savefig("generation_losses/" + "highest_scores.pdf")
-    plt.show()
 

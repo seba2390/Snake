@@ -27,5 +27,11 @@ class NeuralNetwork(torch.nn.Module):
     def forward(self, X):
         return self.fc(X)
 
+    def save_model(self, score):
+        torch.save(obj=self.state_dict(), f="Models/score_"+str(score)+"_model_"+str(np.random.randint(low=0, high=1000000))+".pt")
+
+    def load_model(self, path):
+        self.load_state_dict(torch.load(path))
+
 
 
