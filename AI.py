@@ -179,8 +179,9 @@ def FakeColliderect(fakerect1: FakeReact,
 
 
 class SimpleSnakeApp:
-    def __init__(self, neural_net, display_gameplay: bool = True):
+    def __init__(self, seed, neural_net, display_gameplay: bool = True):
 
+        np.random.seed(seed=seed)
         self.display_gameplay = display_gameplay
 
         if self.display_gameplay:
@@ -253,8 +254,8 @@ class SimpleSnakeApp:
         self.max_iterations = 1000
         self.break_out_counter = 0
         self.game_over_punishment = 20
-        self.apple_reward = -20
-        self.step_closer_reward = (self.apple_reward / 10) / self.max_iterations
+        self.apple_reward = -200
+        self.step_closer_reward = 4*(self.apple_reward / 10) / self.max_iterations
         assert self.step_closer_reward < 0
         self.step_away_punishment = -(self.apple_reward / 10) / self.max_iterations
         assert self.step_away_punishment > 0
@@ -643,17 +644,22 @@ class SimpleSnakeApp:
 
 if __name__ == "__main__":
 
+    # for reproducibility
+    my_seed = 2786
+    np.random.seed(my_seed)
+
     loss_means = []
     highest_scores = []
     best_play_models = []
 
     # Initial run
-    nr_agents = 10000
-    agents = [NeuralNetwork() for agent in range(nr_agents)]
+    nr_agents = 100000
+    agents = [NeuralNetwork(seed=my_seed+agent) for agent in range(nr_agents)]
     losses = []
     scores = []
     for agent in tqdm(range(nr_agents)):
-        theApp = SimpleSnakeApp(neural_net=agents[agent],
+        theApp = SimpleSnakeApp(seed=my_seed+agent,
+                                neural_net=agents[agent],
                                 display_gameplay=False)
         theApp.on_execute()
         losses.append(theApp.loss)
@@ -672,8 +678,8 @@ if __name__ == "__main__":
     highest_scores.append(np.max(scores))
     loss_means.append(np.mean(losses))
 
-    nr_generations = 3
-    nr_replays = 3
+    nr_generations = 5
+    nr_replays = 2
     nr_best = 3
     lr = 0.00000001
     for generation in range(nr_generations):
@@ -688,15 +694,21 @@ if __name__ == "__main__":
             for best_agent in _best_agents:
                 for copy in range(nr_copies):
                     agents.append(best_agent)
-            # Second run
             losses = []
             scores = []
             for agent in range(len(agents)):
-                theApp = SimpleSnakeApp(neural_net=agents[agent],
+                theApp = SimpleSnakeApp(seed=my_seed+len(agents)+agent,
+                                        neural_net=agents[agent],
                                         display_gameplay=False)
                 theApp.on_execute()
                 losses.append(theApp.loss)
                 scores.append(theApp.current_score)
+                if theApp.current_score > 20:
+                    print("Playing w. score: ", theApp.current_score)
+                    theApp = SimpleSnakeApp(seed=my_seed+len(agents)+agent,
+                                            neural_net=agents[agent],
+                                            display_gameplay=True)
+                    theApp.on_execute()
             _agents = agents
             _best_agents = np.array(_agents)[np.argsort(np.array(losses))][:nr_best]
             _losses = losses
@@ -744,10 +756,3 @@ if __name__ == "__main__":
     plt.savefig("generation_losses/" + "highest_scores.pdf")
     plt.show()
 
-    # playing the best agent in each of the games
-    replay = True
-    if replay:
-        for agent in best_play_models:
-            theApp = SimpleSnakeApp(neural_net=agent,
-                                    display_gameplay=True)
-            theApp.on_execute()

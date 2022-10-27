@@ -9,9 +9,10 @@ import scipy
 
 
 class NeuralNetwork(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, seed):
         super(NeuralNetwork, self).__init__()
 
+        torch.random.manual_seed(seed)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.state_space_size = 12
         self.action_space_size = 4
