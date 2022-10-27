@@ -582,7 +582,7 @@ class SimpleSnakeApp:
             _obstacle_state[3] = 1
 
         # Checking against snake
-        for snake_body in range(2, len(self.snake_block_reacts)):
+        for snake_body in range(2, self.current_snake_blocks):
             # Danger up
             if np.abs(self.snake_block_reacts[0].top - self.snake_block_reacts[snake_body].bottom) <= self.snake_block_height:
                 if self.snake_block_reacts[snake_body].bottom < self.snake_block_reacts[0].top:
