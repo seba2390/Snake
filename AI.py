@@ -251,11 +251,11 @@ class SimpleSnakeApp:
 
         self.ratio = self.screen_width / self.snake_block_width - 1
         self.apple_distances = []
-        self.max_iterations = 1000
+        self.max_iterations = 200
         self.break_out_counter = 0
         self.apple_reward = -200
-        self.step_closer_reward = 4*(self.apple_reward / 10) / self.max_iterations
-        self.step_away_punishment = -(self.apple_reward / 10) / self.max_iterations
+        self.step_closer_reward = 0#4*(self.apple_reward / 10) / self.max_iterations
+        self.step_away_punishment = 0#-(self.apple_reward / 10) / self.max_iterations
         self.snake_2_snake_punishment = 10 * self.apple_reward
         self.snake_2_wall_punishment = 10 * self.apple_reward
         self.loss = 0
@@ -492,7 +492,7 @@ class SimpleSnakeApp:
             # Rendering record value
             self.display_surf.blit(self.record_value_surface, self.record_value_react
                                    )
-            self.fps.tick(60)
+            self.fps.tick(80)
             pygame.display.flip()  # This is needed for image to show up ??
 
     def get_state(self):
@@ -560,13 +560,13 @@ class SimpleSnakeApp:
             _own_state[3] = 1
 
         _apple_state = [0, 0, 0, 0]
-        if self.apple_block_react.centery < self.snake_block_reacts[0].centery: # Apple is up from current position
+        if self.apple_block_react.centery < self.snake_block_reacts[0].centery:  # Apple is up from current position
             _apple_state[0] = 1
-        if self.apple_block_react.centery > self.snake_block_reacts[0].centery: # Apple is down from current position
+        if self.apple_block_react.centery > self.snake_block_reacts[0].centery:  # Apple is down from current position
             _apple_state[1] = 1
-        if self.apple_block_react.centerx < self.snake_block_reacts[0].centerx: # Apple is left from current position
+        if self.apple_block_react.centerx < self.snake_block_reacts[0].centerx:  # Apple is left from current position
             _apple_state[2] = 1
-        if self.apple_block_react.centerx > self.snake_block_reacts[0].centerx: # Apple is right from current position
+        if self.apple_block_react.centerx > self.snake_block_reacts[0].centerx:  # Apple is right from current position
             _apple_state[3] = 1
 
         return torch.tensor(_obstacle_state + _own_state + _apple_state, dtype=torch.float32)
@@ -719,28 +719,30 @@ if __name__ == "__main__":
     torch.manual_seed(my_seed)
 
     # View good score games while training ?
-    view_games = False
+    view_games = True
 
     # Stats for plotting
     loss_means = []
     highest_scores = []
     best_play_models = []
 
-    # Initial run
+    # Initial run 1
     nr_agents = 100000
-    agents = [NeuralNetwork(seed=my_seed+agent) for agent in range(nr_agents)]
+    agents = []
     losses = []
     scores = []
     for agent in tqdm(range(nr_agents)):
+        net = NeuralNetwork(seed=my_seed+agent)
         theApp = SimpleSnakeApp(seed=my_seed+agent,
-                                neural_net=agents[agent],
+                                neural_net=net,
                                 display_gameplay=False)
         theApp.on_execute()
-        losses.append(theApp.loss)
         scores.append(theApp.current_score)
+        losses.append(theApp.loss)
+        agents.append(net)
 
-    fig, ax = plt.subplots(1,1,figsize=(10,5))
-    iterations = [i + 1 for i in range(nr_agents)]
+    fig, ax = plt.subplots(1, 1, figsize=(10,5))
+    iterations = [i + 1 for i in range(len(agents))]
     ax.plot(iterations, losses)
     ax.plot(iterations, losses, 'o', ms=1)
     ax.set_xlabel("Agent nr.")
@@ -755,24 +757,24 @@ if __name__ == "__main__":
     loss_means.append(np.mean(losses))
 
     # Generation training
-    nr_generations = 50
-    nr_best = int(len(agents)/100)  # try with 1
+    nr_generations = 300
+    nr_best = 1 #int(len(agents)/100)  # try with 1
     lr = 0.0001
     for generation in range(nr_generations):
 
         # Picking out 'nr_best' agents and adding some mutation
         best_agents = np.array(agents)[np.argsort(np.array(losses))][:nr_best]
         agents = [a for a in best_agents]
-        nr_mutations = int((nr_agents / 50 - nr_best) / len(best_agents))
+        nr_mutations = int((nr_agents/1000 - nr_best) / len(best_agents))
         for best_agent in best_agents:
             for mutation in range(nr_mutations):
                 mutated_agent = deepcopy(best_agent)
                 for layer_name in mutated_agent.state_dict():
                     if "weight" not in layer_name and 'bias' not in layer_name:
                         continue
-                    # mutated_agent.state_dict()[layer_name] += lr * torch.normal(mean=0, std=torch.ones(size=mutated_agent.state_dict()[layer_name].shape))
+                    mutated_agent.state_dict()[layer_name] += lr * torch.normal(mean=0, std=torch.ones(size=mutated_agent.state_dict()[layer_name].shape))
                     # mutated_agent.state_dict()[layer_name] += lr*torch.rand(size=mutated_agent.state_dict()[layer_name].shape)
-                    mutated_agent.state_dict()[layer_name] += lr * torch.bernoulli(torch.abs(mutated_agent.state_dict()[layer_name]))
+                    # mutated_agent.state_dict()[layer_name] += lr * torch.bernoulli(torch.abs(mutated_agent.state_dict()[layer_name]))
                 agents.append(mutated_agent)
 
         losses = []
@@ -784,8 +786,10 @@ if __name__ == "__main__":
             theApp.on_execute()
             losses.append(theApp.loss)
             scores.append(theApp.current_score)
-            if theApp.current_score >= 40:
+            if theApp.current_score >= 55:
+                print("current score: ", theApp.current_score)
                 agents[agent].save_model(score=theApp.current_score)
+            if theApp.current_score >= 65:
                 print("Playing game w. score: ", theApp.current_score)
                 if view_games:
                     theApp = SimpleSnakeApp(seed=my_seed+len(agents)*generation+agent,

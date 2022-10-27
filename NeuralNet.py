@@ -18,9 +18,9 @@ class NeuralNetwork(torch.nn.Module):
         self.action_space_size = 4
         self.fc = torch.nn.Sequential(
             torch.nn.Linear(in_features=self.state_space_size,
-                            out_features=10*self.state_space_size),
+                            out_features=13 * self.state_space_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(in_features=10*self.state_space_size,
+            torch.nn.Linear(in_features=13 * self.state_space_size,
                             out_features=self.action_space_size),
             )
 
