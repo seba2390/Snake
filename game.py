@@ -14,7 +14,8 @@ from util import *
 class SimpleSnakeApp:
     def __init__(self, seed, neural_net, display_gameplay: bool = True):
 
-        np.random.seed(seed=seed)
+        self.seed = seed
+        np.random.seed(seed=self.seed)
         self.display_gameplay = display_gameplay
 
         if self.display_gameplay:
@@ -292,8 +293,8 @@ class SimpleSnakeApp:
             # Rendering record text
             self.display_surf.blit(self.record_text_surface, self.record_text_react)
             # Rendering record value
-            self.display_surf.blit(self.record_value_surface, self.record_value_react
-                                   )
+            self.display_surf.blit(self.record_value_surface, self.record_value_react)
+
             self.fps.tick(80)
             pygame.display.flip()  # This is needed for image to show up ??
 
@@ -330,19 +331,12 @@ class SimpleSnakeApp:
 
         return torch.tensor(_obstacle_state + _own_state + _apple_state, dtype=torch.float32)
 
-
-    @staticmethod
-    def output_2_direction(output):
-        direction_map = {0: "up", 1: "down", 2: "left", 3: "right"}
-        assert len(output) == len(list(direction_map.keys()))
-        argmax = torch.argmax(output).item()
-        return direction_map[argmax]
-
     def get_action(self, state):
         prediction = self.neural_net.forward(state)
-        action = self.output_2_direction(prediction)
+        direction_map = {0: "up", 1: "down", 2: "left", 3: "right"}
+        argmax = torch.argmax(prediction).item()
+        action = direction_map[argmax]
         return action
-
 
     def on_cleanup(self):
         if self.display_gameplay:

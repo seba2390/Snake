@@ -82,10 +82,10 @@ if __name__ == "__main__":
             losses.append(theApp.loss)
             scores.append(theApp.current_score)
             if theApp.current_score >= 55:
-                print("current score: ", theApp.current_score)
-                agents[agent].save_model(score=theApp.current_score)
-            if theApp.current_score >= 65:
+                agents[agent].save_model(score=theApp.current_score, seed=my_seed+len(agents)*generation+agent)
                 print("Playing game w. score: ", theApp.current_score)
+                print("Game seed: ", theApp.seed)
+                print("Agent seed: ", agents[agent].seed)
                 if view_games:
                     theApp = SimpleSnakeApp(seed=my_seed+len(agents)*generation+agent,
                                             neural_net=agents[agent],

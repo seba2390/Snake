@@ -255,7 +255,7 @@ class SimpleSnakeApp:
         # Rendering record value
         self.display_surf.blit(self.record_value_surface, self.record_value_react
                                )
-        self.fps.tick(10)
+        self.fps.tick(30)
         pygame.display.flip()  # This is needed for image to show up ??
 
     @staticmethod
