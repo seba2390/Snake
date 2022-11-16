@@ -1,0 +1,4 @@
+- Using "amplitude" encoded state space 
+- Snake starts in random place with random direction each time
+- Q table are dictionary, where keys are states and each values are Q values for each action
+- Q table are update in game at each time step

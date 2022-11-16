@@ -126,7 +126,8 @@ class SimpleSnakeApp:
             self.snake_block_reacts[self.current_snake_blocks - 1].centerx = x_rand
             self.snake_block_reacts[self.current_snake_blocks - 1].centery = y_rand
 
-        # Loading in graphics for apple
+
+        # Loading in graphics for apple¨
         if self.display_gameplay:
             self.apple_block_surf = pygame.image.load("media/apple_2.png").convert_alpha()
             self.apple_block_react = self.snake_block_surf.get_rect()
@@ -188,8 +189,8 @@ class SimpleSnakeApp:
 
     def update_score(self):
         self.current_score += 1
-        self.loss += 2 * self.apple_reward
-        self.current_reward += 2 * self.apple_reward
+        self.loss += 2*self.apple_reward
+        self.current_reward += 2*self.apple_reward
         if self.display_gameplay:
             current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
             self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color,
@@ -313,6 +314,9 @@ class SimpleSnakeApp:
             self.fps.tick(40)
             pygame.display.flip()  # This is needed for image to show up ??
 
+    def update_Q_table(self,new_qtable):
+        self.Q_table = new_qtable
+
     def get_state(self):
 
         _state = [0, 0, 0, 0]
@@ -333,8 +337,7 @@ class SimpleSnakeApp:
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].top <= self.snake_block_reacts[snake_body_react].bottom:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
                             _state[2] = 1
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
@@ -346,8 +349,7 @@ class SimpleSnakeApp:
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].bottom >= self.snake_block_reacts[snake_body_react].top:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
                             _state[2] = 2
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
@@ -359,8 +361,7 @@ class SimpleSnakeApp:
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].left <= self.snake_block_reacts[snake_body_react].right:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
                             _state[2] = 3
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
@@ -372,8 +373,7 @@ class SimpleSnakeApp:
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].right >= self.snake_block_reacts[snake_body_react].left:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
                             _state[2] = 4
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
@@ -489,3 +489,5 @@ class SimpleSnakeApp:
                 self.running = False
 
         self.on_cleanup()
+
+
