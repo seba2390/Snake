@@ -179,5 +179,24 @@ def tensor_2_string(state_tensor: torch.Tensor) -> str:
     return res
 
 
-def saveQtable(filename: str, qtable):
-    np.savetxt(fname="Qtables/"+filename, X=qtable, fmt="%1.6f")
+def create_q_table_dict():
+    state_dict = {}
+    for i in range(0, 5):
+        for j in range(0, 5):
+            for k in range(0, 5):
+                for l in range(0, 5):
+                    _state = str(i) + str(j) + str(k) + str(l)
+                    state_dict[_state] = [0, 0, 0, 0]
+    return state_dict
+
+
+def loadQtable(filename: str):
+    q_table_array = np.loadtxt("Qtables/" + filename)
+    q_table_dict = create_q_table_dict()
+    for i, state in enumerate(list(q_table_dict.keys())):
+        q_table_dict[state] = q_table_array[i]
+    return q_table_dict
+
+
+def saveQtable(filename: str, qtable_dict):
+    np.savetxt(fname="Qtables/" + filename, X=np.array(list(qtable_dict.values())), fmt="%1.6f")
