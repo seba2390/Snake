@@ -186,7 +186,7 @@ def create_q_table_dict():
             for k in range(0, 5):
                 for l in range(0, 5):
                     _state = str(i) + str(j) + str(k) + str(l)
-                    state_dict[_state] = [0, 0, 0, 0]
+                    state_dict[_state] = [0, 0, 0, 0]  # np.random.uniform(0,1,4).tolist()
     return state_dict
 
 

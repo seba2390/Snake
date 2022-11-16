@@ -44,7 +44,7 @@ class SimpleSnakeApp:
                 self.screen_height / self.snake_block_height)
 
         self.snake_velocity = self.snake_block_width  # pixels pr. frame
-        self.snake_head_direction = "up"
+        self.snake_head_direction = np.random.choice(["up", "down", "left", "right"])
         self.snake_head_history = []
         self.spawn_delay = int(self.snake_block_height / self.snake_velocity)
         self.spawn_snake_block_flag = False
@@ -117,8 +117,15 @@ class SimpleSnakeApp:
         else:
             self.snake_block_reacts[self.current_snake_blocks - 1] = FakeReact(width=self.snake_block_width,
                                                                                height=self.snake_block_height)
-            self.snake_block_reacts[self.current_snake_blocks - 1].left = 10 * self.snake_block_width
-            self.snake_block_reacts[self.current_snake_blocks - 1].top = 10 * self.snake_block_height
+            x_fraction = self.screen_width // self.snake_block_width
+            y_fraction = self.screen_height // self.snake_block_height
+            x_rand = self.snake_block_width // 2 + np.random.randint(low=0, high=x_fraction) * self.snake_block_width
+            y_rand = self.snake_block_height // 2 + np.random.randint(low=0, high=y_fraction) * self.snake_block_height
+            assert self.snake_block_width // 2 <= x_rand <= self.screen_width - self.snake_block_width // 2
+            assert self.snake_block_height // 2 <= y_rand <= self.screen_height - self.snake_block_height // 2
+            self.snake_block_reacts[self.current_snake_blocks - 1].centerx = x_rand
+            self.snake_block_reacts[self.current_snake_blocks - 1].centery = y_rand
+
 
         # Loading in graphics for apple¨
         if self.display_gameplay:
