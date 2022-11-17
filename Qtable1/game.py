@@ -182,8 +182,8 @@ class SimpleSnakeApp:
 
     def update_score(self):
         self.current_score += 1
-        self.loss += 2*self.apple_reward
-        self.current_reward += 2*self.apple_reward
+        self.loss += self.apple_reward
+        self.current_reward += self.apple_reward
         if self.display_gameplay:
             current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
             self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color,
@@ -243,11 +243,13 @@ class SimpleSnakeApp:
     def snake_2_apple_collision_detection(self):
         if self.display_gameplay:
             if pygame.Rect.colliderect(self.apple_block_react, self.snake_block_reacts[0]):
+                self.break_out_counter = 0
                 self.spawn_apple_flag = True
                 self.spawn_snake_block_flag = True
                 self.update_score()
         else:
             if FakeColliderect(self.apple_block_react, self.snake_block_reacts[0]):
+                self.break_out_counter = 0
                 self.spawn_apple_flag = True
                 self.spawn_snake_block_flag = True
                 self.update_score()

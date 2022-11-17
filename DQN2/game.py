@@ -1,23 +1,14 @@
-import matplotlib.pyplot as plt
-import torch
 import pygame
-from pygame import *
-import pygame
-from pygame.locals import *
-import numpy as np
-from copy import deepcopy
-from tqdm import tqdm
 from util import *
 
 
 class SimpleSnakeApp:
-    def __init__(self, seed, Q_table, display_gameplay: bool = True):
+    def __init__(self, seed, display_gameplay: bool = True):
 
         self.seed = seed
         np.random.seed(seed=self.seed)
         self.display_gameplay = display_gameplay
 
-        self.Q_table = Q_table
         self.current_reward = 0
         self.loss = 0
 
@@ -44,7 +35,7 @@ class SimpleSnakeApp:
                 self.screen_height / self.snake_block_height)
 
         self.snake_velocity = self.snake_block_width  # pixels pr. frame
-        self.snake_head_direction = np.random.choice(["up", "down", "left", "right"])
+        self.snake_head_direction = np.random.choice(["up","down","left","right"])
         self.snake_head_history = []
         self.spawn_delay = int(self.snake_block_height / self.snake_velocity)
         self.spawn_snake_block_flag = False
@@ -126,7 +117,7 @@ class SimpleSnakeApp:
             self.snake_block_reacts[self.current_snake_blocks - 1].centerx = x_rand
             self.snake_block_reacts[self.current_snake_blocks - 1].centery = y_rand
 
-        # Loading in graphics for apple
+        # Loading in graphics for apple¨
         if self.display_gameplay:
             self.apple_block_surf = pygame.image.load("media/apple_2.png").convert_alpha()
             self.apple_block_react = self.snake_block_surf.get_rect()
@@ -188,8 +179,8 @@ class SimpleSnakeApp:
 
     def update_score(self):
         self.current_score += 1
-        self.loss += self.apple_reward
-        self.current_reward += self.apple_reward
+        self.loss += 2*self.apple_reward
+        self.current_reward += 2*self.apple_reward
         if self.display_gameplay:
             current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
             self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color,
@@ -249,13 +240,11 @@ class SimpleSnakeApp:
     def snake_2_apple_collision_detection(self):
         if self.display_gameplay:
             if pygame.Rect.colliderect(self.apple_block_react, self.snake_block_reacts[0]):
-                self.break_out_counter = 0
                 self.spawn_apple_flag = True
                 self.spawn_snake_block_flag = True
                 self.update_score()
         else:
             if FakeColliderect(self.apple_block_react, self.snake_block_reacts[0]):
-                self.break_out_counter = 0
                 self.spawn_apple_flag = True
                 self.spawn_snake_block_flag = True
                 self.update_score()
@@ -317,87 +306,25 @@ class SimpleSnakeApp:
 
     def get_state(self):
 
-        _state = [0, 0, 0, 0]
+        _screen_state = torch.zeros(size=(self.screen_height // self.snake_block_height ,
+                                          self.screen_width // self.snake_block_width))
+        # Setting snake body in grid
+        for snake_body in range(1,self.current_snake_blocks):
+            snake_body_y = self.snake_block_reacts[snake_body].centery//self.snake_block_height
+            snake_body_x = self.snake_block_reacts[snake_body].centerx//self.snake_block_width
+            _screen_state[snake_body_y][snake_body_x] = 1
 
-        # Snake colliding with walls
-        if self.snake_block_reacts[0].top <= self.snake_block_height:  # Danger up
-            _state[0] = 1
-        if self.snake_block_reacts[0].bottom >= self.screen_height - self.snake_block_height:  # Danger down
-            _state[0] = 2
-        if self.snake_block_reacts[0].left <= self.snake_block_width:  # Danger left
-            _state[0] = 3
-        if self.snake_block_reacts[0].right >= self.screen_width - self.snake_block_width:  # Danger right
-            _state[0] = 4
+        # Setting apple in grid
+        apple_y = self.apple_block_react.centery // self.apple_block_height
+        apple_x = self.apple_block_react.centerx // self.apple_block_width
+        _screen_state[apple_y][apple_x] = 2
 
-        if self.snake_head_direction == "up":  # Moving up
-            _state[1] = 1
-            # Snake colliding with itself
-            for snake_body_react in range(1, self.current_snake_blocks):
-                if self.snake_block_reacts[0].top <= self.snake_block_reacts[snake_body_react].bottom:
-                    if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 1
-                    else:
-                        if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 1
+        # Setting snake head in grid
+        snake_head_y = self.snake_block_reacts[0].centery//self.snake_block_height
+        snake_head_x = self.snake_block_reacts[0].centerx//self.snake_block_width
+        _screen_state[snake_head_y][snake_head_x] = 3
 
-        if self.snake_head_direction == "down":  # Moving down
-            _state[1] = 2
-            # Snake colliding with itself
-            for snake_body_react in range(1, self.current_snake_blocks):
-                if self.snake_block_reacts[0].bottom >= self.snake_block_reacts[snake_body_react].top:
-                    if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 2
-                    else:
-                        if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 2
-
-        if self.snake_head_direction == "left":  # Moving left
-            _state[1] = 3
-            # Snake colliding with itself
-            for snake_body_react in range(1, self.current_snake_blocks):
-                if self.snake_block_reacts[0].left <= self.snake_block_reacts[snake_body_react].right:
-                    if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 3
-                    else:
-                        if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 3
-
-        if self.snake_head_direction == "right":  # Moving right
-            _state[1] = 4
-            # Snake colliding with itself
-            for snake_body_react in range(1, self.current_snake_blocks):
-                if self.snake_block_reacts[0].right >= self.snake_block_reacts[snake_body_react].left:
-                    if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
-                                                   self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 4
-                    else:
-                        if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _state[2] = 4
-
-        if self.apple_block_react.centery < self.snake_block_reacts[0].centery:  # Apple is up from current position
-            _state[3] = 1
-        if self.apple_block_react.centery > self.snake_block_reacts[0].centery:  # Apple is down from current position
-            _state[3] = 2
-        if self.apple_block_react.centerx < self.snake_block_reacts[0].centerx:  # Apple is left from current position
-            _state[3] = 3
-        if self.apple_block_react.centerx > self.snake_block_reacts[0].centerx:  # Apple is right from current position
-            _state[3] = 4
-
-        return torch.tensor(_state, dtype=torch.float32)
-
-    def get_action(self, state: torch.Tensor) -> str:
-        string_representation = tensor_2_string(state)
-        prediction = np.argmax(self.Q_table[string_representation]).item()
-        direction_map = {0: "up", 1: "down", 2: "left", 3: "right"}
-        action = direction_map[prediction]
-        return action
+        return _screen_state
 
     @staticmethod
     def get_random_action() -> str:
@@ -409,20 +336,13 @@ class SimpleSnakeApp:
         if self.display_gameplay:
             pygame.quit()
 
-    def step(self, random_flag):
+    def step(self, action):
         self.current_reward = 0
-        current_action = None
-        current_state = None
         if not self.game_over:
             if self.break_out_counter == self.max_iterations:  # If snakes starts looping around
                 self.game_over = True
 
-            current_state = self.get_state()
-            if random_flag:
-                current_action = self.get_random_action()
-            else:
-                current_action = self.get_action(current_state)
-            self.control_input(current_action)
+            self.control_input(action)
 
             self.update_snake_head_position()
             self.snake_2_snake_collision_detection()
@@ -444,9 +364,10 @@ class SimpleSnakeApp:
 
         else:
             self.running = False
+
         self.running = not self.game_over
         new_state = self.get_state()
-        return self.current_reward, self.running, current_action, current_state, new_state
+        return self.current_reward, self.running, new_state
 
     def on_execute(self):
 
@@ -491,3 +412,5 @@ class SimpleSnakeApp:
                 self.running = False
 
         self.on_cleanup()
+
+
