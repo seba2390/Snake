@@ -11,14 +11,12 @@ from util import *
 
 
 class SimpleSnakeApp:
-    def __init__(self, seed, Q_table, neural_net, display_gameplay: bool = True):
+    def __init__(self, seed, display_gameplay: bool = True):
 
         self.seed = seed
         np.random.seed(seed=self.seed)
         self.display_gameplay = display_gameplay
 
-        self.neural_net = neural_net
-        self.Q_table = Q_table
         self.current_reward = 0
         self.loss = 0
 
@@ -316,85 +314,80 @@ class SimpleSnakeApp:
 
     def get_state(self):
 
-        _obstacle_state = [0, 0, 0, 0]
+        _state = [0, 0, 0, 0]
+
         # Snake colliding with walls
         if self.snake_block_reacts[0].top <= self.snake_block_height:  # Danger up
-            _obstacle_state[0] = 1
+            _state[0] = 1
         if self.snake_block_reacts[0].bottom >= self.screen_height - self.snake_block_height:  # Danger down
-            _obstacle_state[1] = 1
+            _state[0] = 2
         if self.snake_block_reacts[0].left <= self.snake_block_width:  # Danger left
-            _obstacle_state[2] = 1
+            _state[0] = 3
         if self.snake_block_reacts[0].right >= self.screen_width - self.snake_block_width:  # Danger right
-            _obstacle_state[3] = 1
+            _state[0] = 4
 
-        _own_state = [0, 0, 0, 0]
         if self.snake_head_direction == "up":  # Moving up
-            _own_state[0] = 1
+            _state[1] = 1
             # Snake colliding with itself
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].top <= self.snake_block_reacts[snake_body_react].bottom:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[0] = 1
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
+                                                   self.snake_block_reacts[snake_body_react]):
+                            _state[2] = 1
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[0] = 1
+                            _state[2] = 1
 
         if self.snake_head_direction == "down":  # Moving down
-            _own_state[1] = 1
+            _state[1] = 2
             # Snake colliding with itself
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].bottom >= self.snake_block_reacts[snake_body_react].top:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[0] = 1
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
+                                                   self.snake_block_reacts[snake_body_react]):
+                            _state[2] = 2
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[1] = 1
+                            _state[2] = 2
 
         if self.snake_head_direction == "left":  # Moving left
-            _own_state[2] = 1
+            _state[1] = 3
             # Snake colliding with itself
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].left <= self.snake_block_reacts[snake_body_react].right:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[0] = 1
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
+                                                   self.snake_block_reacts[snake_body_react]):
+                            _state[2] = 3
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[2] = 1
+                            _state[2] = 3
 
         if self.snake_head_direction == "right":  # Moving right
-            _own_state[3] = 1
+            _state[1] = 4
             # Snake colliding with itself
             for snake_body_react in range(1, self.current_snake_blocks):
                 if self.snake_block_reacts[0].right >= self.snake_block_reacts[snake_body_react].left:
                     if self.display_gameplay:
-                        if pygame.Rect.colliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[0] = 1
+                        if pygame.Rect.colliderect(self.snake_block_reacts[0],
+                                                   self.snake_block_reacts[snake_body_react]):
+                            _state[2] = 4
                     else:
                         if FakeColliderect(self.snake_block_reacts[0], self.snake_block_reacts[snake_body_react]):
-                            _obstacle_state[3] = 1
+                            _state[2] = 4
 
-        _apple_state = [0, 0, 0, 0]
         if self.apple_block_react.centery < self.snake_block_reacts[0].centery:  # Apple is up from current position
-            _apple_state[0] = 1
+            _state[3] = 1
         if self.apple_block_react.centery > self.snake_block_reacts[0].centery:  # Apple is down from current position
-            _apple_state[1] = 1
+            _state[3] = 2
         if self.apple_block_react.centerx < self.snake_block_reacts[0].centerx:  # Apple is left from current position
-            _apple_state[2] = 1
+            _state[3] = 3
         if self.apple_block_react.centerx > self.snake_block_reacts[0].centerx:  # Apple is right from current position
-            _apple_state[3] = 1
+            _state[3] = 4
 
-        return torch.tensor(_obstacle_state + _own_state + _apple_state, dtype=torch.float32)
-
-    def get_action(self, state: torch.Tensor) -> str:
-        string_representation = tensor_2_string(state)
-        integer_representation = int(string_representation,2)
-        prediction = np.argmax(self.Q_table[integer_representation, :]).item()
-        direction_map = {0: "up", 1: "down", 2: "left", 3: "right"}
-        action = direction_map[prediction]
-        return action
+        return torch.tensor(_state, dtype=torch.float32)
 
     @staticmethod
     def get_random_action() -> str:
@@ -406,20 +399,13 @@ class SimpleSnakeApp:
         if self.display_gameplay:
             pygame.quit()
 
-    def step(self, random_flag):
+    def step(self, action):
         self.current_reward = 0
-        current_action = None
-        current_state = None
         if not self.game_over:
             if self.break_out_counter == self.max_iterations:  # If snakes starts looping around
                 self.game_over = True
 
-            current_state = self.get_state()
-            if random_flag:
-                current_action = self.get_random_action()
-            else:
-                current_action = self.get_action(current_state)
-            self.control_input(current_action)
+            self.control_input(action)
 
             self.update_snake_head_position()
             self.snake_2_snake_collision_detection()
@@ -441,9 +427,10 @@ class SimpleSnakeApp:
 
         else:
             self.running = False
+
         self.running = not self.game_over
         new_state = self.get_state()
-        return self.current_reward, self.running, current_action, current_state, new_state
+        return self.current_reward, self.running, new_state
 
     def on_execute(self):
 
