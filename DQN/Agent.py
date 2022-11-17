@@ -23,7 +23,7 @@ class Agent:
         self.mem_counter = 0
 
         self.Q_eval = DeepQNetwork(lr=self.lr, nr_actions=self.nr_actions,
-                                   input_dims=self.input_dims, fc1_dims=128,
+                                   input_dims=self.input_dims, fc1_dims=256,
                                    fc2_dims=256)
 
         self.device = self.Q_eval.device
@@ -73,7 +73,7 @@ class Agent:
             random_action = self.action_space[rng_index]
             return random_action
 
-    def learn(self):
+    def learn(self, episode):
         """ Memory initially filled w. zeros
         - first beginning learning process when
         non-zero memory is at least batch_size. """
@@ -120,7 +120,6 @@ class Agent:
         self.Q_eval.optimizer.step()
 
         # Updating exploration rate
-        if self.exploration_rate > self.exploration_rate_min:
-            self.exploration_rate -= self.exploration_decay_rate
-        else:
-            self.exploration_rate = self.exploration_rate_min
+        self.exploration_rate = self.exploration_rate_min + (1 - self.exploration_rate_min) * np.exp(
+                -self.exploration_decay_rate * episode)
+
