@@ -24,15 +24,14 @@ class SimpleSnakeApp:
             self.display_surf = None
             self.background_surf = None
             self.fps = pygame.time.Clock()
-        self.screen_size = self.screen_width, self.screen_height = 690, 690
+        self.screen_size = self.screen_width, self.screen_height = 840, 840
 
         self.snake_block_surf = None
-        self.max_nr_snake_blocks = 400
+        self.snake_block_size = self.snake_block_width, self.snake_block_height = 10, 10
+        self.max_nr_snake_blocks = (self.screen_width // self.snake_block_width) * (
+                self.screen_height // self.snake_block_height)
         self.snake_block_reacts = np.zeros(shape=(self.max_nr_snake_blocks,), dtype=object)
         self.current_snake_blocks = 1
-        self.snake_block_size = self.snake_block_width, self.snake_block_height = 30, 30
-        self.max_nr_snake_blocks = (self.screen_width / self.snake_block_width) * (
-                self.screen_height / self.snake_block_height)
 
         self.snake_velocity = self.snake_block_width  # pixels pr. frame
         self.snake_head_direction = np.random.choice(["up","down","left","right"])
@@ -42,7 +41,7 @@ class SimpleSnakeApp:
 
         self.apple_block_surf = None
         self.apple_block_react = None
-        self.apple_block_size = self.apple_block_width, self.apple_block_height = 30, 30
+        self.apple_block_size = self.apple_block_width, self.apple_block_height = 10, 10
         self.spawn_apple_flag = True
         self.game_over = False
         self.current_score = 0
@@ -170,17 +169,12 @@ class SimpleSnakeApp:
                     else:
                         overlapping_snake = False
 
-    def initial_spawn_apple(self):
-        self.spawn_apple_flag = False
-        x_max = self.screen_width - self.apple_block_width
-        y_max = self.screen_width - self.apple_block_height
-        self.apple_block_react.left = 3 * self.apple_block_width
-        self.apple_block_react.top = 3 * self.apple_block_height
 
     def update_score(self):
+        print("Apple hit")
         self.current_score += 1
-        self.loss += 2*self.apple_reward
-        self.current_reward += 2*self.apple_reward
+        self.loss += self.apple_reward
+        self.current_reward += self.apple_reward
         if self.display_gameplay:
             current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
             self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color,
@@ -218,12 +212,27 @@ class SimpleSnakeApp:
         if len(self.snake_head_history) > history_length:
             self.snake_head_history = self.snake_head_history[(len(self.snake_head_history) - history_length):]
 
-    def on_event(self, _event):
-        if self.display_gameplay:
-            if _event.type == pygame.QUIT:
-                self.running = False
+    def on_event(self, event):
+        if event.type == pygame.QUIT:
+            self.running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                if self.snake_head_direction != "left":
+                    self.snake_head_direction = "right"
+            elif event.key == pygame.K_LEFT:
+                if self.snake_head_direction != "right":
+                    self.snake_head_direction = "left"
+            elif event.key == pygame.K_UP:
+                if self.snake_head_direction != "down":
+                    self.snake_head_direction = "up"
+            elif event.key == pygame.K_DOWN:
+                if self.snake_head_direction != "up":
+                    self.snake_head_direction = "down"
 
-    def control_input(self, direction):
+    def control_input(self, direction: int) -> None:
+        int_2_str = {0: "right", 1: "left", 2: "up", 3: "down"}
+        direction = int_2_str[direction]
+        assert type(direction) is str, f'action not given as str, but as {type(direction)}'
         if direction == "right":
             if self.snake_head_direction != "left":
                 self.snake_head_direction = "right"
@@ -269,7 +278,6 @@ class SimpleSnakeApp:
                 snake_body = self.snake_block_reacts[snake_body_index]
                 if self.display_gameplay:
                     if pygame.Rect.colliderect(snake_head, snake_body):
-                        print("NÅR SLANGEN RAMMER SLANGEN HEHE")
                         self.current_reward += self.snake_2_snake_punishment
                         self.loss += self.snake_2_snake_punishment
                         self.game_over = True
@@ -301,28 +309,31 @@ class SimpleSnakeApp:
             # Rendering record value
             self.display_surf.blit(self.record_value_surface, self.record_value_react)
 
-            self.fps.tick(40)
+            self.fps.tick(10)
             pygame.display.flip()  # This is needed for image to show up ??
 
     def get_state(self):
 
-        _screen_state = torch.zeros(size=(self.screen_height // self.snake_block_height ,
+        _screen_state = torch.zeros(size=(1,1, self.screen_height // self.snake_block_height ,
                                           self.screen_width // self.snake_block_width))
+        if self.game_over:
+            return _screen_state
+
         # Setting snake body in grid
         for snake_body in range(1,self.current_snake_blocks):
             snake_body_y = self.snake_block_reacts[snake_body].centery//self.snake_block_height
             snake_body_x = self.snake_block_reacts[snake_body].centerx//self.snake_block_width
-            _screen_state[snake_body_y][snake_body_x] = 1
+            _screen_state[0][0][snake_body_y][snake_body_x] = 1
 
         # Setting apple in grid
         apple_y = self.apple_block_react.centery // self.apple_block_height
         apple_x = self.apple_block_react.centerx // self.apple_block_width
-        _screen_state[apple_y][apple_x] = 2
+        _screen_state[0][0][apple_y][apple_x] = 2
 
         # Setting snake head in grid
         snake_head_y = self.snake_block_reacts[0].centery//self.snake_block_height
         snake_head_x = self.snake_block_reacts[0].centerx//self.snake_block_width
-        _screen_state[snake_head_y][snake_head_x] = 3
+        _screen_state[0][0][snake_head_y][snake_head_x] = 3
 
         return _screen_state
 
@@ -338,6 +349,7 @@ class SimpleSnakeApp:
 
     def step(self, action):
         self.current_reward = 0
+        new_state = None
         if not self.game_over:
             if self.break_out_counter == self.max_iterations:  # If snakes starts looping around
                 self.game_over = True
@@ -361,13 +373,9 @@ class SimpleSnakeApp:
                 self.break_out_counter = 0
 
             self.break_out_counter += 1
+            new_state = self.get_state()
 
-        else:
-            self.running = False
-
-        self.running = not self.game_over
-        new_state = self.get_state()
-        return self.current_reward, self.running, new_state
+        return self.current_reward, self.game_over, new_state
 
     def on_execute(self):
 
@@ -383,11 +391,12 @@ class SimpleSnakeApp:
             if not self.game_over:
                 if self.break_out_counter == self.max_iterations:  # If snakes starts looping around
                     self.game_over = True
+                    break
 
-                current_state = self.get_state()
-                current_action = self.get_action(current_state)
-
-                self.control_input(current_action)
+                if not self.display_gameplay:
+                    current_state = self.get_state()
+                    current_action = self.get_action(current_state)
+                    self.control_input(current_action)
 
                 self.update_snake_head_position()
                 self.snake_2_snake_collision_detection()
@@ -412,5 +421,3 @@ class SimpleSnakeApp:
                 self.running = False
 
         self.on_cleanup()
-
-

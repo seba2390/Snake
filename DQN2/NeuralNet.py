@@ -2,8 +2,8 @@ import torch
 
 
 class DeepQNetwork(torch.nn.Module):
-    def __init__(self, lr: float, input_dims: list[int], fc1_dims: int,
-                 fc2_dims: int, nr_actions: int, seed: int = 0):
+    def __init__(self, lr: float, input_dims: tuple[int, int],
+                 nr_actions: int, nr_consecutive_frames: int = 1, seed: int = 0):
         super(DeepQNetwork, self).__init__()
 
         self.seed = seed  # For rng reproducibility
@@ -11,61 +11,40 @@ class DeepQNetwork(torch.nn.Module):
 
         self.lr = lr
         self.input_dims = input_dims
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
         self.nr_actions = nr_actions
+        self.nr_consecutive_frames = nr_consecutive_frames
 
-        self.fc = torch.nn.Sequential(torch.nn.Linear(in_features=self.input_dims[0], out_features=self.fc1_dims),
-                                      torch.nn.ReLU(),
-                                      torch.nn.Linear(in_features=self.fc1_dims, out_features=self.fc2_dims),
-                                      torch.nn.ReLU(),
-                                      torch.nn.Linear(in_features=self.fc2_dims, out_features=self.nr_actions))
+        def conv2d_size_out(size, kernel_size, stride):
+            """Calculating output size of conv layer"""
+            return (size - (kernel_size - 1) - 1) // stride + 1
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        self.loss_func = torch.nn.MSELoss()
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.to(self.device)
+        # ----------- Defining Layers in Neural Net ------------ #
+        self.conv1 = torch.nn.Conv2d(in_channels=self.nr_consecutive_frames, out_channels=32, kernel_size=8, stride=4)
+        self.conv2 = torch.nn.Conv2d(in_channels=self.conv1.out_channels, out_channels=64, kernel_size=4, stride=2)
+        self.conv3 = torch.nn.Conv2d(in_channels=self.conv2.out_channels, out_channels=64, kernel_size=3, stride=1)
 
-    def forward(self, state):
-        actions = self.fc(state)
-        return actions
+        h1 = conv2d_size_out(self.input_dims[0], self.conv1.kernel_size[0], self.conv1.stride[0])
+        w1 = conv2d_size_out(self.input_dims[0], self.conv1.kernel_size[1], self.conv1.stride[1])
+        h2 = conv2d_size_out(h1, self.conv2.kernel_size[0], self.conv2.stride[0])
+        w2 = conv2d_size_out(w1, self.conv2.kernel_size[1], self.conv2.stride[1])
+        h3 = conv2d_size_out(h2, self.conv3.kernel_size[0], self.conv3.stride[0])
+        w3 = conv2d_size_out(w2, self.conv3.kernel_size[1], self.conv3.stride[1])
 
-    def loss(self, target, prediction):
-        return self.loss_func(target, prediction)
+        flattened_size = h3 * w3 * self.conv3.out_channels
+        self.lin1 = torch.nn.Linear(in_features=flattened_size, out_features=512)
+        self.lin2 = torch.nn.Linear(in_features=self.lin1.out_features, out_features=self.nr_actions)
 
-
-class DQN(torch.nn.Module):
-
-    def __init__(self, h, w, outputs, seed: int = 0):
-        super(DQN, self).__init__()
-
-        self.seed = seed  # For rng reproducibility
-        torch.manual_seed(self.seed)
-
-        self.conv1 = torch.nn.Conv2d(3, 16, kernel_size=5, stride=2)
-        self.bn1 = torch.nn.BatchNorm2d(16)
-        self.conv2 = torch.nn.Conv2d(16, 32, kernel_size=5, stride=2)
-        self.bn2 = torch.nn.BatchNorm2d(32)
-        self.conv3 = torch.nn.Conv2d(32, 32, kernel_size=5, stride=2)
-        self.bn3 = torch.nn.BatchNorm2d(32)
-
-        # Number of Linear input connections depends on output of conv2d layers
-        # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size = 5, stride = 2):
-            return (size - (kernel_size - 1) - 1) // stride  + 1
-        convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-        linear_input_size = convw * convh * 32
-        self.head = torch.nn.Linear(linear_input_size, outputs)
+        self.rectifier = torch.nn.ReLU()
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
 
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
-    def forward(self, x):
-        x = x.to(self.device)
-        x = torch.nn.functional.relu(self.bn1(self.conv1(x)))
-        x = torch.nn.functional.relu(self.bn2(self.conv2(x)))
-        x = torch.nn.functional.relu(self.bn3(self.conv3(x)))
-        return self.head(x.view(x.size(0), -1))
+    def forward(self, state: torch.Tensor) -> torch.Tensor:
+        state = state.to(self.device)
+        state = self.rectifier(self.conv1(state))
+        state = self.rectifier(self.conv2(state))
+        state = self.rectifier(self.conv3(state))
+        state = torch.flatten(input=state,start_dim=1)
+        state = self.lin1(state)
+        state = self.lin2(state)
+        return state

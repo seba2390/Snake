@@ -28,7 +28,7 @@ class ReplayMemory(object):
 
 
 class Agent:
-    def __init__(self, gamma: float, exploration_rate: float, lr: float, input_dims: tuple[int, int],
+    def __init__(self, gamma: float, exploration_rate: float, lr: float, input_size: int,
                  batch_size: int, nr_actions: int, max_mem_size: int = 10000, nr_consecutive_frames: int = 4,
                  exploration_rate_min: float = 0.01, exploration_decay_rate: float = 5e-4, seed: int = 0):
 
@@ -48,14 +48,15 @@ class Agent:
 
         # ------ Setting Game characteristics ------ #
         self.nr_actions = nr_actions
-        self.input_dims = input_dims
+        self.input_size = input_size
         self.action_space = [action for action in range(self.nr_actions)]
 
         # ------ Defining Neural nets ------ #
-        self.policy_network = DeepQNetwork(lr=self.lr, input_dims=self.input_dims, nr_actions=self.nr_actions,
+        self.policy_network = DeepQNetwork(lr=self.lr, input_size=self.input_size, nr_actions=self.nr_actions,
                                            nr_consecutive_frames=self.nr_consecutive_frames, seed=self.seed)
-        self.target_network = DeepQNetwork(lr=self.lr, input_dims=self.input_dims, nr_actions=self.nr_actions,
+        self.target_network = DeepQNetwork(lr=self.lr, input_size=self.input_size, nr_actions=self.nr_actions,
                                            nr_consecutive_frames=self.nr_consecutive_frames, seed=self.seed)
+
         self.align_networks()  # Initially setting target params = policy params
 
         # ------ Defining memory ------ #

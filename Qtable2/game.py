@@ -179,13 +179,6 @@ class SimpleSnakeApp:
                     else:
                         overlapping_snake = False
 
-    def initial_spawn_apple(self):
-        self.spawn_apple_flag = False
-        x_max = self.screen_width - self.apple_block_width
-        y_max = self.screen_width - self.apple_block_height
-        self.apple_block_react.left = 3 * self.apple_block_width
-        self.apple_block_react.top = 3 * self.apple_block_height
-
     def update_score(self):
         self.current_score += 1
         self.loss += self.apple_reward

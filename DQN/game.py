@@ -178,17 +178,11 @@ class SimpleSnakeApp:
                     else:
                         overlapping_snake = False
 
-    def initial_spawn_apple(self):
-        self.spawn_apple_flag = False
-        x_max = self.screen_width - self.apple_block_width
-        y_max = self.screen_width - self.apple_block_height
-        self.apple_block_react.left = 3 * self.apple_block_width
-        self.apple_block_react.top = 3 * self.apple_block_height
 
     def update_score(self):
         self.current_score += 1
-        self.loss += 2*self.apple_reward
-        self.current_reward += 2*self.apple_reward
+        self.loss += self.apple_reward
+        self.current_reward += self.apple_reward
         if self.display_gameplay:
             current_x, current_y = self.score_value_react.centerx, self.score_value_react.centery
             self.score_value_surface = self.score_board_font.render(str(self.current_score), True, self.text_color,
@@ -231,7 +225,9 @@ class SimpleSnakeApp:
             if _event.type == pygame.QUIT:
                 self.running = False
 
-    def control_input(self, direction):
+    def control_input(self, direction: int) -> None:
+        int_2_str = {0: "up", 1: "down", 2: "left", 3: "right"}  # {0:"right", 1: "left", 2: "up", 3: "down"}
+        direction = int_2_str[direction]
         if direction == "right":
             if self.snake_head_direction != "left":
                 self.snake_head_direction = "right"
