@@ -18,8 +18,8 @@ class SimpleSnakeApp:
         self.loss = 0
 
         self.apple_reward = 1
-        self.snake_2_snake_punishment = -10
-        self.snake_2_wall_punishment = -5
+        self.snake_2_snake_punishment = -1
+        self.snake_2_wall_punishment = -1
 
         self.max_iterations = 3000
         self.break_out_counter = 0
@@ -274,10 +274,12 @@ class SimpleSnakeApp:
         y_min, y_max = 0, self.screen_width
         snake_head = self.snake_block_reacts[0]
         if snake_head.left < x_min or snake_head.right > x_max:
+            #print("slange 2 væg")
             self.current_reward += self.snake_2_wall_punishment
             self.loss += self.snake_2_wall_punishment
             self.game_over = True
         elif snake_head.bottom > y_max or snake_head.top < y_min:
+            #print("slange 2 væg")
             self.current_reward += self.snake_2_wall_punishment
             self.loss += self.snake_2_wall_punishment
             self.game_over = True
@@ -289,14 +291,18 @@ class SimpleSnakeApp:
                 snake_body = self.snake_block_reacts[snake_body_index]
                 if self.display_gameplay:
                     if pygame.Rect.colliderect(snake_head, snake_body):
+                        #print("slange 2 slange")
                         self.current_reward += self.snake_2_snake_punishment
                         self.loss += self.snake_2_snake_punishment
                         self.game_over = True
+                        break
                 else:
                     if FakeColliderect(snake_head, snake_body):
+                        #print("slange 2 slange")
                         self.current_reward += self.snake_2_snake_punishment
                         self.loss += self.snake_2_snake_punishment
                         self.game_over = True
+                        break
 
     def in_game_render(self):
         if self.display_gameplay:
@@ -503,7 +509,8 @@ class SimpleSnakeApp:
             new_state = self.get_state_2()
 
             self.break_out_counter += 1
-
+        if self.current_reward < self.snake_2_snake_punishment:
+            print("whaaaaaaaaat")
         return self.current_reward, self.game_over, new_state
 
     def apple_in_snake(self):

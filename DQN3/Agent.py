@@ -65,8 +65,8 @@ class Agent:
         # ------ Defining optimizer and loss function ------ #
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
 
-        # self.loss_func = torch.nn.MSELoss() # Mean squared error (squared L2 norm)
-        self.loss_func = torch.nn.HuberLoss(delta=1.0)  # Smooth L1 for delta = 1.0
+        self.loss_func = torch.nn.MSELoss() # Mean squared error (squared L2 norm)
+        # self.loss_func = torch.nn.HuberLoss(delta=1.0)  # Smooth L1 for delta = 1.0
         self.device = self.policy_network.device
 
     def align_networks(self) -> None:
@@ -94,9 +94,12 @@ class Agent:
             random_action = self.action_space[rng_index]
             return random_action
 
-    def update_exploration_rate(self, t):
-        self.exploration_rate = self.exploration_rate_min + (1 - self.exploration_rate_min) * np.exp(
-            -self.exploration_decay_rate * t)
+    def update_exploration_rate(self):
+        """ Decreasing epsilon linearly"""
+        if self.exploration_rate > self.exploration_rate_min:
+            self.exploration_rate -= self.exploration_decay_rate
+        else:
+            self.exploration_rate = self.exploration_rate_min
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:
         """ For collecting all state items in batch in torch tensors (batch_size, nr_channels, height, width)
@@ -112,7 +115,7 @@ class Agent:
 
         return state_batch, action_batch, reward_batch, new_state_batch, terminal_batch
 
-    def learn(self, t):
+    def learn(self):
         """ first beginning learning process when
         non-zero memory is at least batch_size. """
         if self.memory.__len__() >= self.batch_size:
@@ -144,4 +147,4 @@ class Agent:
             self.optimizer.step()
 
             # Updating exploration rate
-            self.update_exploration_rate(t)
+            self.update_exploration_rate()
