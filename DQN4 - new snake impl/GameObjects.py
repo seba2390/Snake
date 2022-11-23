@@ -71,6 +71,10 @@ class Apple:
         apple block. """
         self._add_apple_block(grid=grid)
 
+    def get_apple(self):
+        """ Getter function for apple rect. """
+        return self.apple_block.rect
+
 
 class Snake:
     """ In this implementation it is assumed that
@@ -159,8 +163,16 @@ class Snake:
         self._snake_blocks[0].direction = direction
 
     def get_direction(self) -> str:
-        """Getter function for current snake direction."""
+        """ Getter function for current snake direction."""
         return self._snake_blocks[0].direction
+
+    def get_head(self) -> pygame.Rect | FakeRect:
+        """ Getter function for snake head rect."""
+        return self._snake_blocks[0].rect
+
+    def get_body(self, index: int) -> pygame.Rect | FakeRect:
+        """ Getter function for snake body rect."""
+        return self._snake_blocks[index].rect
 
     def initialize(self, direction: str = "Unknown") -> None:
         """ initializes snake by spawning in snake head at

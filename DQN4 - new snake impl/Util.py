@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import pygame
 
-# TODO: Add size attribute to FakeRect class
 
 class FakeRect:
     """ Imitation type class implementation of Pygame Reacts.
@@ -25,6 +24,7 @@ class FakeRect:
         self._right = right
         self._top = top
         self._bottom = bottom
+        self.size = (self._height, self._width)
 
     def _get_right(self):
         return self._right
@@ -146,13 +146,13 @@ class FakeRect:
         self._set_centerx(self._centerx + x)
         self._set_centery(self._centery + y)
         return FakeRect(width=self._width,
-                         height=self._height,
-                         centerx=self._centerx,
-                         centery=self._centery,
-                         left=self._left,
-                         right=self._right,
-                         top=self._top,
-                         bottom=self._bottom)
+                        height=self._height,
+                        centerx=self._centerx,
+                        centery=self._centery,
+                        left=self._left,
+                        right=self._right,
+                        top=self._top,
+                        bottom=self._bottom)
 
 
 class PygameText:
@@ -181,9 +181,3 @@ class PygameText:
 
     def get_text_color(self) -> tuple[int, int, int]:
         return self.color
-
-
-
-
-
-
