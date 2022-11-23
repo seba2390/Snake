@@ -4,7 +4,7 @@ import numpy as np
 
 
 class SnakeEnvironment:
-    def __init__(self, seed, neural_net=None, display_gameplay: bool = True):
+    def __init__(self, seed, neural_net=None, display_gameplay: bool = True, graphics_speed: int = 1):
 
         # For RNG reproducibility
         np.random.seed(seed)
@@ -23,7 +23,7 @@ class SnakeEnvironment:
 
         # Settings
         self.display_gameplay = display_gameplay
-        self.graphics_speed = 2  # chose 1,2,3,4,5,6,7
+        self.graphics_speed = graphics_speed  # chose 1,2,3,4,5,6,7
         self.apple_reward = 1
         self.death_punishment = -1
         self.max_iterations = 3000
@@ -96,9 +96,10 @@ class SnakeEnvironment:
 
     def _update_direction(self, direction: int = 42, event=None) -> None:
         # Checking for closed window
-        if event.type == pygame.QUIT:
-            self.running = False
-            return None
+        if event is not None:
+            if event.type == pygame.QUIT:
+                self.running = False
+                return None
         else:
             # If no neural net is given - user control is enabled
             if self.neural_net is None:
@@ -204,29 +205,31 @@ class SnakeEnvironment:
             # Rendering screen
             self._in_game_render()
             # Directing snake according either to neural net or user input
-            for _event in pygame.event.get():
-                if self.neural_net is None:
-                    self._update_direction(event=_event)
-                else:
-                    current_action_index = torch.argmax(input=self.neural_net.forward(self.get_state())).item()
-                    self._update_direction(direction=current_action_index)
+            if self.neural_net is None:
+                for _event in pygame.event.get():
+                    if self.neural_net is None:
+                        self._update_direction(event=_event)
+            else:
+                current_action_index = torch.argmax(input=self.neural_net.forward(self.get_state())).item()
+                self._update_direction(direction=current_action_index)
+
             # Updating snake state
             self.snake.update(velocity=self.snake_speed)
             # If snake has not hit itself or walls
             if not self.snake.dead:
-                # Checking that snake hasn't just started looping around
-                if self.break_out_counter == self.max_iterations:
-                    self.running = False
-                    break
                 # Checking whether snake has found apple
                 if self.snake.found_apple(apple=self.apple):
                     self._update_score()
                     self.break_out_counter = 0
-                # Iterating counter that checks for looping snake
-                self.break_out_counter += 1
             else:
                 self.running = False
                 break
+            # Checking that snake hasn't just started looping around
+            if self.break_out_counter == self.max_iterations:
+                self.running = False
+            # Iterating counter that checks for looping snake
+            else:
+                self.break_out_counter += 1
         self._close_window()
 
     def initialize_environment(self):
