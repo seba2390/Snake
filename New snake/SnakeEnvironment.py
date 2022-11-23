@@ -1,4 +1,4 @@
-from util import *
+from Util import *
 from GameObjects import *
 import numpy as np
 
@@ -46,7 +46,6 @@ class SnakeEnvironment:
         self.apple_block_surf = None
         self.apple_block_rect = None
 
-
         self.initialize()
 
         self.snake = Snake(rect=self.snake_block_rect,
@@ -64,17 +63,18 @@ class SnakeEnvironment:
             pygame.font.init()
             self.display_surf = pygame.display.set_mode(size=self.screen_size,
                                                         flags=(pygame.HWSURFACE or pygame.DOUBLEBUF))
-            self.background_surf = pygame.image.load("media/background_2.png").convert()
+            self.background_surf = pygame.image.load("media/background.png").convert()
             # Loading in graphics for snake
-            self.snake_block_surf = pygame.image.load("media/snake_block_2.png").convert_alpha()
+            self.snake_block_surf = pygame.image.load("media/snake_block.png").convert_alpha()
             self.snake_block_rect = self.snake_block_surf.get_rect()
             # Loading in graphics for apple
-            self.apple_block_surf = pygame.image.load("media/apple_2.png").convert_alpha()
+            self.apple_block_surf = pygame.image.load("media/apple_block.png").convert_alpha()
             self.apple_block_rect = self.snake_block_surf.get_rect()
             # loading in graphics for text objects
-            self.score_text = PygameText(filename="media/my_font.ttf", text="score: ", text_size=25)
+            font_filename = "media/font.ttf"
+            self.score_text = PygameText(filename=font_filename, text="score: ", text_size=25)
             self.score_text.set_position(left=30,top=5)
-            self.score_value_text = PygameText(filename="media/my_font.ttf", text=str(self.current_score), text_size=25)
+            self.score_value_text = PygameText(filename=font_filename, text=str(self.current_score), text_size=25)
             self.score_value_text.set_position(left=self.score_text.rect.right + 20,top=5)
         # Using fake rects instead of graphics
         else:

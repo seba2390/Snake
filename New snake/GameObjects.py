@@ -2,7 +2,7 @@ import pygame
 import numpy as np
 import collections
 from copy import deepcopy
-from util import *
+from Util import *
 
 
 class Block:
