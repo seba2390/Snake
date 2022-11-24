@@ -14,10 +14,6 @@ class DeepQNetwork(torch.nn.Module):
         self.nr_actions = nr_actions
         self.nr_consecutive_frames = nr_consecutive_frames
 
-        def conv2d_size_out(size, kernel_size, stride):
-            """Calculating output size of conv layer"""
-            return (size - (kernel_size - 1) - 1) // stride + 1
-
         # ----------- Defining Layers in Neural Net ------------ #
         self.lin1 = torch.nn.Linear(in_features=self.input_size, out_features=self.input_size*20)
         self.lin2 = torch.nn.Linear(in_features=self.input_size*20, out_features=self.nr_actions)
