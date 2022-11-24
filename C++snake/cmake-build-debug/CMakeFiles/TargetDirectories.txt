@@ -1,0 +1,5 @@
+/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/cmake-build-debug/src/CMakeFiles/Snake-exe.dir
+/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/cmake-build-debug/src/CMakeFiles/edit_cache.dir
+/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/cmake-build-debug/src/CMakeFiles/rebuild_cache.dir
