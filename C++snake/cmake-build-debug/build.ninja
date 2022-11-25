@@ -94,7 +94,6 @@ build src/CMakeFiles/Snake-exe.dir/main.cpp.o: CXX_COMPILER__Snake-exe_Debug /Us
 
 build src/Snake: CXX_EXECUTABLE_LINKER__Snake-exe_Debug src/CMakeFiles/Snake-exe.dir/main.cpp.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk
-  LINK_LIBRARIES = -lMyProgram  -lMyProgram
   OBJECT_DIR = src/CMakeFiles/Snake-exe.dir
   POST_BUILD = :
   PRE_LINK = :

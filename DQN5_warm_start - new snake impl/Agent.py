@@ -46,6 +46,8 @@ class Agent:
         self.batch_size = batch_size
         self.lr = lr
 
+        self.episode_count = 0
+
         # ------ Setting Game characteristics ------ #
         self.nr_actions = nr_actions
         self.input_size = input_size
@@ -96,10 +98,15 @@ class Agent:
 
     def update_exploration_rate(self):
         """ Decreasing epsilon linearly"""
-        if self.exploration_rate > self.exploration_rate_min:
-            self.exploration_rate -= self.exploration_decay_rate
-        else:
-            self.exploration_rate = self.exploration_rate_min
+        #if self.exploration_rate > self.exploration_rate_min:
+        #    self.exploration_rate -= self.exploration_decay_rate
+        #else:
+        #    self.exploration_rate = self.exploration_rate_min
+
+        # Decreasing epsilon exponentially
+        # Exploration rate decay
+        self.exploration_rate = self.exploration_rate_min + (1.0 - self.exploration_rate_min) * np.exp(
+            -self.exploration_decay_rate * self.episode_count)
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:
         """ For collecting all state items in batch in torch tensors (batch_size, nr_channels, height, width)
@@ -148,3 +155,4 @@ class Agent:
 
             # Updating exploration rate
             self.update_exploration_rate()
+            self.episode_count += 1

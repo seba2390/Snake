@@ -11,8 +11,8 @@
 		"commands" : 
 		[
 			"add_executable",
-			"target_link_libraries",
-			"include_directories"
+			"include_directories",
+			"target_link_libraries"
 		],
 		"files" : 
 		[
@@ -31,22 +31,22 @@
 				"parent" : 0
 			},
 			{
+				"file" : 1
+			},
+			{
 				"command" : 1,
+				"file" : 1,
+				"line" : 8,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
 				"file" : 0,
 				"line" : 6,
 				"parent" : 0
 			},
 			{
-				"file" : 1
-			},
-			{
 				"command" : 2,
-				"file" : 1,
-				"line" : 8,
-				"parent" : 3
-			},
-			{
-				"command" : 1,
 				"file" : 0,
 				"line" : 7,
 				"parent" : 0
@@ -68,11 +68,11 @@
 			"includes" : 
 			[
 				{
-					"backtrace" : 4,
+					"backtrace" : 3,
 					"path" : "/Users/sebastianyde/Library/CloudStorage/OneDrive-AarhusUniversitet/Div. Github projekter/Snake/C++snake/Include"
 				},
 				{
-					"backtrace" : 2,
+					"backtrace" : 4,
 					"isSystem" : true,
 					"path" : "/opt/homebrew/include"
 				},
@@ -109,16 +109,6 @@
 			{
 				"fragment" : "",
 				"role" : "flags"
-			},
-			{
-				"backtrace" : 2,
-				"fragment" : "-lMyProgram",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 2,
-				"fragment" : "-lMyProgram",
-				"role" : "libraries"
 			}
 		],
 		"language" : "CXX"
