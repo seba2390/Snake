@@ -2,7 +2,7 @@
 #include <iostream>
 #include <list> // for std::list
 #include <array> // for std::array
-#include <cstdlib> // for rng
+#include <cassert> // for assertions
 
 // Boost and Eigen include
 #include <boost/circular_buffer.hpp>
@@ -10,14 +10,20 @@
 #include <Eigen/Sparse>
 
 // TODO: Implement setting seed for srand()
-// TODO: Fix recursiveness for setters in FakeRect
 // TODO: Investigate endless loop in move() in snake class
 
 namespace Util
 {
+    using float_type = float;
+    using int_type = int;
+    using matrix = Eigen::Matrix<int_type, Eigen::Dynamic, Eigen::Dynamic>;
+
+    [[maybe_unused]] void debug_print(){std::cout << " ---- DEBUG PRINTING ---- " << std::endl;}
+
     int random_int(const int& low,
                    const int& high)
     {
+        assert(low < high);
         return rand() % (high-1) + low;
     }
 
@@ -31,7 +37,16 @@ namespace Util
         int _centerx, _centery, _left, _right, _top, _bottom;
 
         // Standard C-tor
-        FakeRect(){};
+        FakeRect(){
+            this-> height = 0;
+            this-> width = 0;
+            this->_centerx = 0;
+            this->_centery = 0;
+            this->_left = 0;
+            this->_right = 0;
+            this->_top = 0;
+            this->_bottom = 0;
+        };
 
         // Parametrized C-tor
         [[maybe_unused]] FakeRect(
@@ -44,8 +59,11 @@ namespace Util
                       int top = 0,
                       int bottom = 0)
         {
+            assert(height % 2 == 0);
+            assert(width == height);
+
             // Private const definitions.
-            this->height = (height);
+            this->height = height;
             this->width = width;
             this->size[0] = this->height; this->size[1] = this->width,
 
@@ -67,61 +85,61 @@ namespace Util
 
 
         // Method for cloning instance of class
-        FakeRect clone() const
+        [[nodiscard]] FakeRect clone() const
         {
-            return FakeRect(this->height, this->width,
+            return FakeRect{this->height, this->width,
                             this->_centerx, this->_centery,
                             this->_left, this->_right,
-                            this->_top, this->_bottom);
+                            this->_top, this->_bottom};
         }
 
         // Setters and Getters that dynamically updates attributes
-        int get_centerx(){return this->_centerx;}
-        void set_centerx(int centerx)
+        [[nodiscard]] [[maybe_unused]] int get_centerx() const {return this->_centerx;}
+        [[maybe_unused]] void set_centerx(int centerx)
         {
             this->_centerx = centerx;
-            set_left(this->_centerx-(int)(this->width/2));
-            set_right(this->_centerx+(int)(this->width/2));
+            this->_left = this->_centerx-(int)(this->width/2);
+            this->_right = this->_centerx+(int)(this->width/2);
         }
 
-        int get_centery(){return this->_centery;}
-        void set_centery(int centery)
+        [[nodiscard]] [[maybe_unused]] int get_centery() const{return this->_centery;}
+        [[maybe_unused]] void set_centery(int centery)
         {
             this->_centery = centery;
-            set_top(this->_centery-(int)(this->height/2));
-            set_bottom(this->_centery+(int)(this->height/2));
+            this->_top = this->_centery-(int)(this->height/2);
+            this->_bottom = this->_centery+(int)(this->height/2);
         }
 
-        int get_left(){return this->_left;}
+        [[nodiscard]] int get_left() const{return this->_left;}
         void set_left(int left)
         {
             this->_left = left;
-            set_right(this->_left+this->width);
-            set_centerx(this->_left+(int)(this->width/2));
+            this->_right = this->_left+this->width;
+            this->_centerx = this->_left+(int)(this->width/2);
         }
 
-        int get_right(){return this->_right;}
-        void set_right(int right)
+        [[nodiscard]] int get_right() const{return this->_right;}
+        [[maybe_unused]] void set_right(int right)
         {
             this->_right = right;
-            set_left(this->_right-this->width);
-            set_centerx(this->_right-(int)(this->width/2));
+            this->_left = this->_right-this->width;
+            this->_centerx = this->_right-(int)(this->width/2);
         }
 
-        int get_top() const{return this->_top;}
+        [[nodiscard]] int get_top() const{return this->_top;}
         void set_top(int top)
         {
             this->_top = top;
-            set_bottom(this->_top+this->height);
-            set_centery(this->_top+(int)(this->height/2));
+            this->_bottom = this->_top+this->height;
+            this->_centery = this->_top+(int)(this->height/2);
         }
 
-        int get_bottom(){return this->_bottom;}
+        [[nodiscard]] int get_bottom() const{return this->_bottom;}
         void set_bottom(int bottom)
         {
             this->_bottom = bottom;
-            set_top(this->_bottom-this->height);
-            set_centery(this->_bottom-(int)(this->height/2));
+            this->_top = this->_bottom-this->height;
+            this->_centery = this->_bottom-(int)(this->height/2);
         }
 
         std::array<int,2> get_size(){return this->size;}
@@ -139,13 +157,13 @@ namespace GameObjects
         std::string direction;
 
         // Standard un-parametrized C-tor
-        Block()= default;
+        Block() = default;
 
         explicit Block(const Util::FakeRect& rect,
                        std::string direction = "Unknown")
        {
             this->rect = rect;
-            this->direction = direction;
+            this->direction = std::move(direction);
        }
     };
 
@@ -153,7 +171,6 @@ namespace GameObjects
     {
 
     private:
-        int content_counter = 0;
 
     public:
 
@@ -161,7 +178,10 @@ namespace GameObjects
         boost::circular_buffer<std::tuple<int, int, std::string>> history; // Similar to Python deque
 
         // Standard un-parametrized C-tor
-        History()= default;
+        History()
+        {
+            this->length = 0;
+        };
 
         explicit History(const int& length)
         {
@@ -174,9 +194,30 @@ namespace GameObjects
             this->history.push_back(state);
         }
 
-        std::tuple<int, int, std::string> get(const int& index){return this->history[index];}
+        std::tuple<int, int, std::string> get(const int& index)
+        {
+            assert(index <= this->history.capacity());
+            assert(index >= 0);
+            return this->history[index];
+        }
 
-        void set_length(const int& new_length){this->history.set_capacity(new_length);}
+        void set_length(const int& new_length)
+        {
+            assert(new_length >= this->length);
+            this->history.set_capacity(new_length);
+            this->length = new_length;
+            assert(this->history.capacity() == this->length);
+        }
+
+        void view_history()
+        {
+            for(int h = 0; h < this->history.capacity(); h++)
+            {
+                std::cout << " - History index " << h << " : "
+                          <<  "(" << std::get<0>(this->history[h]) << ","
+                          << std::get<1>(this->history[h]) << ")" << std::endl;
+            }
+        }
     };
 
     class Apple
@@ -191,6 +232,16 @@ namespace GameObjects
 
         Block apple_block;
 
+        Apple()
+        {
+            this->block_size = 0;
+            this->screen_size = 0;
+            this->seed = 0;
+            this->rect = Util::FakeRect(0,0,
+                                        0,0,
+                                        0,0,0,0);
+        }
+
         Apple(const Util::FakeRect& rect,
               const int& screen_size,
               const unsigned int& seed)
@@ -201,7 +252,26 @@ namespace GameObjects
             this->seed = seed;
         }
 
-        void add_apple_block();
+        void add_apple_block(const std::vector<std::tuple<int,int>>& available_points)
+        {
+            int random_int = Util::random_int(0,(int)available_points.size());
+            std::tuple<int,int> random_point = available_points[random_int];
+            Util::FakeRect apple_rect = this->rect.clone();
+            apple_rect.set_top(std::get<0>(random_point));
+            apple_rect.set_left(std::get<1>(random_point));
+            this->apple_block = Block(apple_rect);
+        }
+
+        void initialize(const std::vector<std::tuple<int,int>>& available_points)
+        {
+            add_apple_block(available_points);
+        }
+
+        Util::FakeRect get_apple()
+        {
+            return this->apple_block.rect;
+        }
+
     };
 
     class Snake
@@ -214,8 +284,7 @@ namespace GameObjects
         std::string unknown_token = "Unknown";
 
         std::vector<Block> snake_blocks;
-        int snake_length = 0;
-        History history = History(snake_length);
+
         unsigned int seed;
 
         void update_snake_length()
@@ -224,39 +293,74 @@ namespace GameObjects
             this->history.set_length(this->snake_length);
         }
 
-        void add_head_block(const std::string& direction = "Unknown")
+
+        bool colliding_with_wall()
         {
-            Util::FakeRect head_rect = this->rect.clone();
-            int grid_size = this->screen_size / this->block_size;
-            head_rect.set_left(Util::random_int(0,grid_size));
-            head_rect.set_top(Util::random_int(0,grid_size));
-            if(direction == this->unknown_token)
+            if((this->snake_blocks[0].rect.get_top() < 0) ||
+               (this->snake_blocks[0].rect.get_bottom() > this->screen_size))
             {
-                int random_int = Util::random_int(0,(int)this->action_space.size()-1);
-                std::string random_direction = this->action_space[random_int];
-                this->snake_blocks.push_back(Block(head_rect,random_direction));
+                this->dead = true;
+                return true;
             }
-            else
+            if((this->snake_blocks[0].rect.get_left() < 0) ||
+                (this->snake_blocks[0].rect.get_right() > this->screen_size))
             {
-                this->snake_blocks.push_back(Block(head_rect,direction));
+                this->dead = true;
+                return true;
             }
-            update_snake_length();
+            return false;
         }
 
-        void add_body_block()
+        bool colliding_with_self()
         {
-            Util::FakeRect body_rect = this->rect.clone();
-            std::map<std::string, std::tuple<int,int>> map{{"up"   , std::tuple(0, this->block_size)},
-                                                           {"down" , std::tuple(0,-this->block_size)},
-                                                           {"left" , std::tuple( this->block_size,0)},
-                                                           {"right", std::tuple(-this->block_size,0)}};
-            std::tuple<int,int,std::string> hist = this->history.get(0);
-            std::string dir = std::get<2>(hist);
-            body_rect.set_left(std::get<0>(hist)+std::get<0>(map[dir]));
-            body_rect.set_bottom(std::get<1>(hist)+std::get<1>(map[dir]));
-            Block body_block = Block(body_rect,dir);
-            this->snake_blocks.push_back(body_block);
-            update_snake_length();
+            for(int block = 1; block < this->snake_length; block++)
+            {
+                if (this->snake_blocks[0].rect.get_left() == this->snake_blocks[block].rect.get_left())
+                {
+                    if(this->snake_blocks[0].rect.get_bottom() == this->snake_blocks[block].rect.get_bottom())
+                    {
+                        this->dead = true;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+    public:
+        int snake_length = 0;
+        History history = History(snake_length);
+        bool dead = false;
+
+        // Standard un-parametrized C-tor
+        Snake()
+        {
+            this->block_size = 0;
+            this->screen_size = 0;
+            this->seed = 0;
+        };
+
+        Snake(const Util::FakeRect& rect,
+              const int& screen_size,
+              const unsigned int& seed)
+        {
+            this->rect = rect;
+            this->screen_size = screen_size;
+            this->seed = seed;
+            this->block_size = this->rect.get_size()[0];
+            this->history.set_length(0);
+        }
+
+        void set_direction(std::string direction)
+        {
+            this->snake_blocks[0].direction = std::move(direction);
+        }
+
+        void save_history()
+        {
+            this->history.add(std::tuple(this->snake_blocks[0].rect.get_left(),
+                                         this->snake_blocks[0].rect.get_bottom(),
+                                         this->snake_blocks[0].direction));
         }
 
         void move(const int& velocity)
@@ -272,30 +376,38 @@ namespace GameObjects
             this->snake_blocks[0].rect.move(head_vx, head_vy);
 
             // Moving body
-            if(this->snake_length > 1)
+            std::tuple<int,int,std::string> hist;
+            for(int block = 1; block < this->snake_length; block++)
             {
-                std::tuple<int,int,std::string> hist;
-                for(int block = 1; block < this->snake_length; block++)
-                {
-                    hist = this->history.get(-(this->snake_length-block));
-                    this->snake_blocks[block].rect.set_left(std::get<0>(hist));
-                    this->snake_blocks[block].rect.set_bottom(std::get<1>(hist));
-                    this->snake_blocks[block].direction = std::get<2>(hist);
-                }
+                hist = this->history.get(block);
+                this->snake_blocks[block].rect.set_left(std::get<0>(hist));
+                this->snake_blocks[block].rect.set_bottom(std::get<1>(hist));
+                this->snake_blocks[block].direction = std::get<std::string>(hist);
             }
         }
-        void set_direction(std::string direction)
+
+        void add_body_block()
         {
-            this->snake_blocks[0].direction = std::move(direction);
+            Util::FakeRect body_rect = this->rect.clone();
+
+            std::tuple<int,int,std::string> hist = this->history.get(0);
+            std::string dir = std::get<2>(hist);
+            body_rect.set_left(std::get<0>(hist));
+            body_rect.set_bottom(std::get<1>(hist));
+
+
+            Block body_block = Block(body_rect,dir);
+            this->snake_blocks.push_back(body_block);
+            update_snake_length();
         }
 
         std::string get_direction(){return this->snake_blocks[0].direction;}
 
-        Util::FakeRect get_head(){return this->snake_blocks[0].rect;}
+        [[maybe_unused]] Util::FakeRect get_head(){return this->snake_blocks[0].rect;}
 
-        Util::FakeRect get_body(const int& index){return this->snake_blocks[index].rect;}
+        [[maybe_unused]] Util::FakeRect get_body(const int& index){return this->snake_blocks[index].rect;}
 
-        void initialize(const std::string& direction = "Unknown")
+        [[maybe_unused]] void initialize(const std::string& direction = "Unknown")
         {
             if(direction == this->unknown_token)
             {
@@ -307,82 +419,366 @@ namespace GameObjects
             {
                 add_head_block(direction);
             }
+        }
+
+        [[maybe_unused]] void update(const int& velocity)
+        {
             save_history();
-        }
-
-        void save_history()
-        {
-            this->history.add(std::tuple(this->snake_blocks[0].rect.get_left(),
-                                               this->snake_blocks[0].rect.get_bottom(),
-                                               this->snake_blocks[0].direction));
-        }
-
-        bool colliding_with_wall()
-        {
-            if((this->snake_blocks[0].rect.get_top() < 0) ||
-               (this->snake_blocks[0].rect.get_bottom() > this->screen_size))
+            move(velocity);
+            if(colliding_with_self() or colliding_with_wall())
             {
-                return true;
+                this->dead = true;
+                return;
             }
-            if((this->snake_blocks[0].rect.get_left() < 0) ||
-                (this->snake_blocks[0].rect.get_right() > this->screen_size))
-            {
-                return true;
-            }
-            return false;
         }
 
-        bool colliding_with_self()
+        [[maybe_unused]] std::vector<std::tuple<int,int>> available_grid_points()
         {
-            for(int block = 1; block < this->snake_length; block++)
-            {
-                if (this->snake_blocks[0].rect.get_left() == this->snake_blocks[block].rect.get_left())
+            int grid_size = this->screen_size / this->block_size;
+            std::vector<std::tuple<int,int>> available_grid_points; // Formatted as (top, left)
+
+            for(int y = 0; y < grid_size; y++)
+                for(int x = 0; x < grid_size; x++)
                 {
-                    if(this->snake_blocks[0].rect.get_bottom() == this->snake_blocks[block].rect.get_bottom())
+                    bool is_available = true;
+                    for(const Block& snake_block: this->snake_blocks)
                     {
-                        return true;
+                        if((snake_block.rect.get_left() == x * this->block_size) &&
+                           (snake_block.rect.get_top()  == y * this->block_size))
+                        {
+                            is_available = false;
+                        }
                     }
+                    if(is_available)
+                    {
+                        available_grid_points.emplace_back(std::tuple(y * this->block_size,
+                                                                   x * this->block_size));
+                    }
+                }
+            return available_grid_points;
+        }
+
+        bool found_apple(Apple& apple)
+        {
+            std::cout << "# Apple x,y: " << "("
+                      <<  apple.apple_block.rect.get_left() / 30 << ","
+                      << apple.apple_block.rect.get_top() / 30 << ")"
+                      << std::endl;
+            std::cout << "- Head x,y: " << "("
+                      << get_head().get_left() / 30 << ","
+                      << get_head().get_top() / 30 << ")"
+                      << std::endl;
+            if(get_head().get_left() == apple.apple_block.rect.get_left())
+            {
+                if(get_head().get_bottom() == apple.apple_block.rect.get_bottom())
+                {
+                    add_body_block();
+                    apple.initialize(available_grid_points());
+                    return true;
                 }
             }
             return false;
         }
 
-
-
-    public:
-        bool dead = false;
-
-        // Standard un-parametrized C-tor
-        Snake() = default;
-
-        Snake(const Util::FakeRect& rect,
-              const int& screen_size,
-              const unsigned int& seed)
+        Util::matrix get_grid()
         {
-            this->rect = rect;
-            this->screen_size = screen_size;
-            this->seed = seed;
+            int grid_size = this->screen_size / this->block_size;
+            Util::matrix state(grid_size,grid_size);
+            state.setZero();
+            int head_x, head_y, body_x, body_y;
+
+            head_x = std::floor(this->snake_blocks[0].rect.get_left() / this->block_size);
+            head_y = std::floor(this->snake_blocks[0].rect.get_top() / this->block_size);
+            state(head_y, head_x) = 2;
+            for(int block = 1; block < this->snake_length; block++)
+            {
+                body_x = std::floor(this->snake_blocks[block].rect.get_left() / this->block_size);
+                body_y = std::floor(this->snake_blocks[block].rect.get_top() / this->block_size);
+                state(body_y,body_x) = 1;
+            }
+            return state;
         }
 
+        void view_state()
+        {
+            std::cout << "  state: \n" << get_grid() << std::endl;
+        }
 
+        void add_head_block(const std::string& direction = "Unknown")
+        {
+            Util::FakeRect head_rect = this->rect.clone();
+            int grid_size = std::floor(this->screen_size / this->block_size);
+            head_rect.set_left(Util::random_int(0,grid_size) * this->block_size);
+            head_rect.set_top(Util::random_int(0,grid_size) * this->block_size);
+            if(direction == this->unknown_token)
+            {
+                int random_int = Util::random_int(0,(int)this->action_space.size()-1);
+                std::string random_direction = this->action_space[random_int];
+                this->snake_blocks.emplace_back(Block(head_rect,random_direction));
+            }
+            else
+            {
+                this->snake_blocks.emplace_back(Block(head_rect,direction));
+            }
+            update_snake_length();
+        }
+    };
+}
+
+namespace GameLogic
+{
+    struct RewardConstants
+    {
+        int apple_reward;
+        int death_reward;
+    };
+
+    struct Dimensions
+    {
+        // Assuming square dimensions
+        int block_size;
+        int screen_size;
+    };
+
+    struct GameSettings
+    {
+        int snake_speed;
+        int max_steps;
+        unsigned int seed;
+    };
+
+    class SnakeEnvironment
+    {
+    private:
+
+    public:
+        GameObjects::Snake snake = GameObjects::Snake();
+        GameObjects::Apple apple = GameObjects::Apple();
+
+        int current_reward    = 0;
+        int current_score     = 0;
+        int break_out_counter = 0;
+
+        int running_token = 0; // 0 for false and 1 for true
+
+        RewardConstants reward_constants = {.apple_reward =  1,
+                                            .death_reward = -1};
+
+        Dimensions dimensions = {.block_size  = 30,
+                                 .screen_size = 150};
+
+        GameSettings game_settings = {.snake_speed = dimensions.block_size,
+                                      .max_steps   = 1000 ,
+                                      .seed = 0};
+
+        bool running = false;
+
+        // C-tor
+        SnakeEnvironment() = default;
+
+        explicit SnakeEnvironment(const unsigned int& seed)
+        {
+            this->game_settings.seed = seed;
+        }
+
+        // Public Methods
+        void initialize_environment()
+        {
+            Util::FakeRect snake_block_rect = Util::FakeRect(this->dimensions.block_size,
+                                                             this->dimensions.block_size);
+            this->snake = GameObjects::Snake(snake_block_rect,
+                                             this->dimensions.screen_size,
+                                             this->game_settings.seed);
+            this->snake.initialize();
+
+            Util::FakeRect apple_block_rect = Util::FakeRect(this->dimensions.block_size,
+                                                             this->dimensions.block_size);
+            this->apple = GameObjects::Apple(apple_block_rect,
+                                             this->dimensions.screen_size,
+                                             this->game_settings.seed);
+            this->apple.initialize(this->snake.available_grid_points());
+
+            this->running = true;
+            this->running_token = 1;
+        }
+
+        void set_snake_direction(const int& direction_int)
+        {
+            std::map<int, std::string> map{{0, "right"},
+                                           {1, "left"},
+                                           {2, "up"},
+                                           {3, "down"}};
+            std::string direction = map[direction_int];
+            if((direction == "right") && (this->snake.get_direction() != "left"))
+            {
+                this->snake.set_direction(direction);
+                return;
+            }
+            if((direction == "left")  && (this->snake.get_direction() != "right"))
+            {
+                this->snake.set_direction(direction);
+                return;
+            }
+            if((direction == "up")    && (this->snake.get_direction() != "down"))
+            {
+                this->snake.set_direction(direction);
+                return;
+            }
+            if((direction == "down")  && (this->snake.get_direction() != "up"))
+            {
+                this->snake.set_direction(direction);
+            }
+        }
+
+        void step(const int& action)
+        {
+            this->current_reward = 0;
+            set_snake_direction(action);
+            this->snake.update(this->game_settings.snake_speed);
+            if(!this->snake.dead)
+            {
+                if(this->snake.found_apple(this->apple))
+                {
+                    std::cout << "found apple" << std::endl;
+                    this->current_score += 1;
+                    this->current_reward += this->reward_constants.apple_reward;
+                    this->break_out_counter = 0;
+                }
+            }
+            else
+            {
+                this->current_reward += this->reward_constants.death_reward;
+                this->running = false;
+            }
+            if(this->break_out_counter == this->game_settings.max_steps)
+            {
+                this->running = false;
+            }
+            else
+            {
+                this->break_out_counter += 1;
+            }
+        }
+
+        void view()
+        {
+            Util::matrix state = this->snake.get_grid();
+            int row = (this->apple.get_apple().get_top() / this->dimensions.block_size);
+            int col = (this->apple.get_apple().get_left() / this->dimensions.block_size);
+            state(row,col) = 5;
+            std::cout << "state: \n" << state << std::endl;
+        }
     };
 }
 
 int main()
 {
-    using std::cout; using std::endl;
+    unsigned int my_seed = 0;
+    /*int my_screen_size = 10;
+    int my_block_size = 2;
+    GameObjects::Snake test_snake = GameObjects::Snake(Util::FakeRect(my_block_size,my_block_size),
+                                                   my_screen_size,my_seed);
 
-    cout << Util::random_int(0,10) << endl;
-    cout << Util::random_int(0,10) << endl;
-
-    std::array<std::string,2> test = {"a", "b"};
-    cout << test.size() << endl;
-    cout << test[test.size()-1] << endl;
-
-    std::map<std::string, std::tuple<int,int>> map{{"up", std::tuple(0,1)}, {"down", std::tuple(2,3)},
-                                                   {"left", std::tuple(4,5)}, {"right", std::tuple(6,7)}};
-    cout << std::get<1>(map["up"]) << endl;
+    std::cout << "\n ### Setting snake head... ###" << std::endl;
+    test_snake.add_head_block();
+    std::cout << "with direction: " << test_snake.get_direction() << std::endl;
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
 
 
+    std::cout << "\n ### moving snake head... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
 
+
+    std::cout << "\n ### adding snake body... ###" << std::endl;
+    test_snake.add_body_block();
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### moving entire snake... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### moving entire snake... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+
+    std::cout << "\n ### Setting direction left and moving entire snake... ###" << std::endl;
+    test_snake.set_direction("left");
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+
+    std::cout << "\n ### adding snake body... ###" << std::endl;
+    test_snake.add_body_block();
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### moving entire snake... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### moving entire snake... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### Setting direction up and moving entire snake... ###" << std::endl;
+    test_snake.set_direction("up");
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();
+
+    std::cout << "\n ### moving entire snake... ###" << std::endl;
+    test_snake.save_history();
+    test_snake.move(my_block_size);
+    test_snake.view_state();
+    std::cout << "now has history.." << std::endl;
+    test_snake.history.view_history();*/
+
+    std::map<int, std::string> map{{0, "right"},
+                                   {1, "left"},
+                                   {2, "up"},
+                                   {3, "down"}};
+    GameLogic::SnakeEnvironment test_env = GameLogic::SnakeEnvironment(my_seed);
+    test_env.initialize_environment();
+    test_env.view();
+    test_env.step(0);
+    test_env.view();
+    test_env.step(0);
+    test_env.view();
+    test_env.step(3);
+    test_env.view();
+    test_env.step(1);
+    test_env.view();
+    test_env.step(1);
+    test_env.view();
+    test_env.step(1);
+    test_env.view();
+    test_env.step(2);
+    test_env.view();
 }
