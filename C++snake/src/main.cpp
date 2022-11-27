@@ -668,6 +668,75 @@ namespace GameLogic
             state(row,col) = 5;
             std::cout << "state: \n" << state << std::endl;
         }
+
+        bool get_status()
+        {
+            return this->running;
+        }
+
+        float get_reward()
+        {
+            return this->current_reward;
+        }
+
+        std::vector<int> get_state()
+        {
+            Util::FakeRect head = this->snake.get_head();
+            std::vector<int> _wall_danger_state {0,0,0,0};
+            if(head.get_top() == 0){ _wall_danger_state[0] = 1;}
+            if(head.get_bottom() == this->dimensions.screen_size){_wall_danger_state[1] = 1;}
+            if(head.get_left() == 0){_wall_danger_state[2] = 1;}
+            if(head.get_right() == this->dimensions.screen_size){_wall_danger_state[3] = 1;}
+
+            std::vector<int> _snake_danger_state {0,0,0,0};
+            for(int body = 1; body < this->snake.snake_length; body++)
+            {
+                if(head.get_left() == this->snake.get_body(body).get_left())
+                {
+                    if(head.get_top() == this->snake.get_body(body).get_bottom())
+                    {
+                        _snake_danger_state[0] = 1;
+                    }
+                    else if (head.get_bottom() == this->snake.get_body(body).get_top())
+                    {
+                        _snake_danger_state[1] = 1;
+                    }
+                }
+                if(head.get_top() == this->snake.get_body(body).get_top())
+                {
+                    if(head.get_left() == this->snake.get_body(body).get_right())
+                    {
+                        _snake_danger_state[2] = 1;
+                    }
+                    else if (head.get_right() == this->snake.get_body(body).get_left())
+                    {
+                        _snake_danger_state[3] = 1;
+                    }
+                }
+            }
+            _wall_danger_state.insert(_wall_danger_state.end(),_snake_danger_state.begin(),_snake_danger_state.end());
+
+            std::vector<int> _apple_state {0,0,0,0};
+            Util::FakeRect apple = this->apple.get_apple();
+            if(apple.get_bottom() <= head.get_top()){_apple_state[0] = 1;}
+            if(apple.get_top() >= head.get_bottom()){_apple_state[1] = 1;}
+            if(apple.get_right() <= head.get_left()){_apple_state[2] = 1;}
+            if(apple.get_left() >= head.get_right()){_apple_state[3] = 1;}
+
+            std::map<std::string,int> map{{"right",0},
+                                           {"left",1},
+                                           {"up"  ,2},
+                                           {"down",3}};
+
+            std::vector<int> _direction_state {0,0,0,0};
+            _direction_state[map[this->snake.get_direction()]] = 1;
+            _apple_state.insert(_apple_state.end(),_direction_state.begin(),_direction_state.end());
+
+            _wall_danger_state.insert(_wall_danger_state.end(),_apple_state.begin(),_apple_state.end());
+
+            return _wall_danger_state;
+        }
+
     };
 }
 
@@ -781,4 +850,14 @@ int main()
     test_env.view();
     test_env.step(2);
     test_env.view();
+
+
+    auto a = test_env.get_state();
+    for(const int& val: a)
+    {
+        std::cout << "val: " << val << std::endl;
+    }
+
+
+
 }
