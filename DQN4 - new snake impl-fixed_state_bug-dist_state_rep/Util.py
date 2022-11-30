@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import pygame
+from Agent import *
 
 
 class FakeRect:
@@ -183,26 +184,57 @@ class PygameText:
         return self.color
 
 
-def stretched_exponential(_episode, nr_episodes,
-                          A=0.5, B=0.1, C=0.1):
-    """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
-    standardized_time = (_episode - A * nr_episodes) / (B * nr_episodes)
-    cosh = np.cosh(np.exp(-standardized_time))
-    epsilon = 1.0 - (1.0 / cosh + (_episode * C / nr_episodes))
-    return epsilon
+
+class HyperParameters:
+    def __init__(self, batch_size: int, gamma: float, eps_0: float,
+                 eps_min: float, eps_decay_rate: float, target_update_freq: int,
+                 learning_rate: float, memory_size: int, n_episodes: int):
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.initial_epsilon = eps_0
+        self.minimal_epsilon = eps_min
+        self.epsilon_decay_rate = eps_decay_rate
+        self.target_update_frequency = target_update_freq
+
+        self.learning_rate = learning_rate
+        self.memory_size = memory_size
+        self.n_episodes = n_episodes
+
+    def __str__(self):
+        string_repr = "####### Hyperparameters ####### : \n"
+        for key in list(self.__dict__.keys()):
+            string_repr += str(key) + ": " + str(self.__dict__[key]) + "\n "
+        return string_repr
 
 
-def linear(_episode, current_rate, min_rate, decay_rate):
-    if current_rate > min_rate:
-        return 1.0 - decay_rate * _episode
-    else:
-        return min_rate
+class TrainingData:
+    def __init__(self, scores: np.ndarray, steps: np.ndarray, eps: np.ndarray):
+        self.scores = scores
+        self.steps = steps
+        self.eps = eps
+
+    def get_formatted_data(self):
+        formatted_data = [self.steps, self.scores, self.eps]
+        return formatted_data
 
 
-def exponential(_episode, min_rate, decay_rate):
-    return min_rate + np.exp(-_episode * decay_rate)
+def save_session(filename: str,
+                 note: str,
+                 params: HyperParameters,
+                 agent: Agent,
+                 data: TrainingData):
+    file = open(file=filename, mode='w')
+    file.write("\n########################################################################## \n")
+    file.write("################################ Settings ################################ \n")
+    file.write("########################################################################## \n\n")
+    file.write(note + "\n")
+    file.write(params.__str__() + "\n")
+    file.write(agent.__str__() + "\n")
+    file.write("\n########################################################################## \n")
+    file.write("################################## DATA ################################## \n")
+    file.write("########################################################################## \n")
+    file.write("{: >20} {: >20} {: >20}".format("steps:", "scores:", "epsilon:")+"\n")
+    for row in np.array(data.get_formatted_data()).T:
+        file.write("{: >20} {: >20} {: >20}".format(*list(row))+"\n")
+    file.close()
 
-
-def oscillator(_episode, nr_episodes,
-               A=5, B=10):
-    return np.exp(-A / nr_episodes * _episode) * np.cos(B / nr_episodes * _episode) ** 2

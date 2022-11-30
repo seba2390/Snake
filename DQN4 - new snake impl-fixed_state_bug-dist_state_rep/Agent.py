@@ -3,7 +3,6 @@ import numpy as np
 from NeuralNet import *
 import collections
 import random
-from Util import *
 
 # Tuple w. attributes
 Transition = collections.namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done_flag'))
@@ -95,13 +94,49 @@ class Agent:
             random_action = self.action_space[rng_index]
             return random_action
 
+    @staticmethod
+    def stretched_exponential(_episode, nr_episodes,
+                              A=0.5, B=0.1, C=0.1):
+        """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
+        standardized_time = (_episode - A * nr_episodes) / (B * nr_episodes)
+        cosh = np.cosh(np.exp(-standardized_time))
+        epsilon = 1.0 - (1.0 / cosh + (_episode * C / nr_episodes))
+        return epsilon
+
+    @staticmethod
+    def linear(_episode, current_rate, min_rate, decay_rate):
+        if current_rate > min_rate:
+            return 1.0 - decay_rate * _episode
+        else:
+            return min_rate
+
+    @staticmethod
+    def exponential(_episode, min_rate, decay_rate):
+        return min_rate + np.exp(-_episode * decay_rate)
+
+    @staticmethod
+    def oscillator(_episode, nr_episodes,
+                   A=5, B=10):
+        return np.exp(-A / nr_episodes * _episode) * np.cos(B / nr_episodes * _episode) ** 2
+
+    @staticmethod
+    def inverse_power(_episode, decay_rate, eps_initial=1.0, power=1.0):
+        return eps_initial/((decay_rate * _episode)**power+1.0)
+
+    @staticmethod
+    def exponential_ski_hill(_episode, decay_rate, A=0.5):
+        return 1.0/(np.exp(_episode**(A*decay_rate)-2.0*np.pi)+1)
+
     def update_exploration_rate(self, episode):
 
-        #self.exploration_rate = oscillator(episode, self.nr_episodes)
-        #self.exploration_rate = linear(episode,self.exploration_rate,self.exploration_rate_min,self.exploration_decay_rate)
-        #self.exploration_rate = exponential(episode,self.exploration_rate_min,self.exploration_decay_rate)
-        self.exploration_rate = stretched_exponential(episode, self.nr_episodes, A=0.5, B=0.15, C=0.01)
+        #self.exploration_rate = self.oscillator(episode, self.nr_episodes)
+        #self.exploration_rate = self.linear(episode, self.exploration_rate, self.exploration_rate_min, self.exploration_decay_rate)
+        #self.exploration_rate = self.exponential(episode, self.exploration_rate_min, self.exploration_decay_rate)
+        #self.exploration_rate = self.inverse_power(episode, self.exploration_decay_rate, power=1.0)
+        #self.exploration_rate = self.stretched_exponential(episode, self.nr_episodes, A=0.5, B=0.15, C=0.01)
         #self.exploration_rate *= (1.0-self.exploration_decay_rate)
+        self.exploration_rate = self.exponential_ski_hill(episode, self.exploration_decay_rate, A=0.5)
+
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:
         """ For collecting all state items in batch in torch tensors (batch_size, nr_channels, height, width)
@@ -150,3 +185,12 @@ class Agent:
 
             # Updating exploration rate
             self.update_exploration_rate(time)
+
+    def __str__(self):
+        str_repr = "####### Optimizer ####### : \n "
+        str_repr += self.optimizer.__str__() + "\n\n"
+        str_repr += "####### Loss function ####### : \n "
+        str_repr += self.loss_func.__str__() + "\n\n"
+        str_repr += "####### Network structure #######: \n "
+        str_repr += self.policy_network.__str__()
+        return str_repr

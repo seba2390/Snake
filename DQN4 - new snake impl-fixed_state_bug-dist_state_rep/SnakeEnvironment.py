@@ -305,13 +305,13 @@ class SnakeEnvironment:
         _normalized_apple_dist = [dist / max_dist]
 
         # Distance to tail
-        #tail = self.snake.get_tail()
-        #dist = np.sqrt((head.centerx - tail.centerx) ** 2 + (head.centery - tail.centery) ** 2)
-        #_normalized_tail_dist = [1 - dist / max_dist]
+        tail = self.snake.get_tail()
+        dist = np.sqrt((head.centerx - tail.centerx) ** 2 + (head.centery - tail.centery) ** 2)
+        normalized_tail_dist = [1 - dist / max_dist]
 
         return torch.tensor(_wall_danger_state + _snake_danger_state +
                             _apple_state + _direction_state +
-                            _normalized_apple_dist, dtype=torch.float32).reshape(1, -1)
+                            _normalized_apple_dist + normalized_tail_dist, dtype=torch.float32).reshape(1, -1)
 
 
     def run(self):
