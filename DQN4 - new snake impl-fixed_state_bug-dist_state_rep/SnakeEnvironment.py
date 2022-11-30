@@ -24,9 +24,9 @@ class SnakeEnvironment:
         # Settings
         self.display_gameplay = display_gameplay
         self.graphics_speed = graphics_speed  # chose 1,2,3,4,5,6,7
-        self.apple_reward = 10.5
-        self.death_punishment = -10.5
-        self.max_iterations = 700
+        self.apple_reward = 2.0
+        self.death_punishment = -2.0
+        self.max_iterations = 600
         self.snake_block_size = self.snake_block_width, self.snake_block_height = 30, 30
         self.apple_block_size = self.apple_block_width, self.apple_block_height = 30, 30
         self.screen_size = self.screen_width, self.screen_height = 600, 600

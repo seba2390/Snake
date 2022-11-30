@@ -3,6 +3,7 @@ import numpy as np
 from NeuralNet import *
 import collections
 import random
+from Util import *
 
 # Tuple w. attributes
 Transition = collections.namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done_flag'))
@@ -96,32 +97,10 @@ class Agent:
 
     def update_exploration_rate(self, episode):
 
-        def stretched_exponential(_episode):
-            """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
-            A, B, C = 0.5, 0.1, 0.1
-            standardized_time = (_episode - A * self.nr_episodes) / (B * self.nr_episodes)
-            cosh = np.cosh(np.exp(-standardized_time))
-            epsilon = 1.0 - (1.0 / cosh + (_episode * C / self.nr_episodes))
-            return epsilon
-
-        def linear(_episode):
-            if self.exploration_rate > self.exploration_rate_min:
-                return 1.0 - self.exploration_decay_rate * _episode
-            else:
-                return self.exploration_rate_min
-
-        def exponential(_episode):
-            return self.exploration_rate_min + np.exp(-_episode*self.exploration_decay_rate)
-
-        def oscillator(_episode):
-            A, B = 5, 10
-            return np.exp(-A/self.nr_episodes * _episode) * np.cos(B/self.nr_episodes * _episode) ** 2
-
-        #self.exploration_rate = oscillator(episode)
-        self.exploration_rate = linear(episode)
-        #self.exploration_rate = exponential(episode)
-        #self.exploration_rate = stretched_exponential(episode)
-
+        #self.exploration_rate = oscillator(episode, self.nr_episodes)
+        #self.exploration_rate = linear(episode,self.exploration_rate,self.exploration_rate_min,self.exploration_decay_rate)
+        #self.exploration_rate = exponential(episode,self.exploration_rate_min,self.exploration_decay_rate)
+        self.exploration_rate = stretched_exponential(episode, self.nr_episodes, A=0.5, B=0.15, C=0.01)
         #self.exploration_rate *= (1.0-self.exploration_decay_rate)
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:

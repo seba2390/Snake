@@ -181,3 +181,28 @@ class PygameText:
 
     def get_text_color(self) -> tuple[int, int, int]:
         return self.color
+
+
+def stretched_exponential(_episode, nr_episodes,
+                          A=0.5, B=0.1, C=0.1):
+    """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
+    standardized_time = (_episode - A * nr_episodes) / (B * nr_episodes)
+    cosh = np.cosh(np.exp(-standardized_time))
+    epsilon = 1.0 - (1.0 / cosh + (_episode * C / nr_episodes))
+    return epsilon
+
+
+def linear(_episode, current_rate, min_rate, decay_rate):
+    if current_rate > min_rate:
+        return 1.0 - decay_rate * _episode
+    else:
+        return min_rate
+
+
+def exponential(_episode, min_rate, decay_rate):
+    return min_rate + np.exp(-_episode * decay_rate)
+
+
+def oscillator(_episode, nr_episodes,
+               A=5, B=10):
+    return np.exp(-A / nr_episodes * _episode) * np.cos(B / nr_episodes * _episode) ** 2
