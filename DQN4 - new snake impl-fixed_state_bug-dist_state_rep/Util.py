@@ -183,8 +183,6 @@ class PygameText:
     def get_text_color(self) -> tuple[int, int, int]:
         return self.color
 
-
-
 class HyperParameters:
     def __init__(self, batch_size: int, gamma: float, eps_0: float,
                  eps_min: float, eps_decay_rate: float, target_update_freq: int,
@@ -208,13 +206,15 @@ class HyperParameters:
 
 
 class TrainingData:
-    def __init__(self, scores: np.ndarray, steps: np.ndarray, eps: np.ndarray):
+    def __init__(self, scores: np.ndarray | list, rewards: np.ndarray | list,
+                 steps: np.ndarray | list, eps: np.ndarray | list):
         self.scores = scores
+        self.rewards = rewards
         self.steps = steps
         self.eps = eps
 
     def get_formatted_data(self):
-        formatted_data = [self.steps, self.scores, self.eps]
+        formatted_data = [self.steps, self.scores, self.rewards, self.eps]
         return formatted_data
 
 
@@ -222,19 +222,20 @@ def save_session(filename: str,
                  note: str,
                  params: HyperParameters,
                  agent: Agent,
+                 env,
                  data: TrainingData):
     file = open(file=filename, mode='w')
     file.write("\n########################################################################## \n")
     file.write("################################ Settings ################################ \n")
     file.write("########################################################################## \n\n")
-    file.write(note + "\n")
+    file.write("Note: " + note + "\n\n")
+    file.write(env.__str__() + "\n")
     file.write(params.__str__() + "\n")
     file.write(agent.__str__() + "\n")
     file.write("\n########################################################################## \n")
     file.write("################################## DATA ################################## \n")
     file.write("########################################################################## \n")
-    file.write("{: >20} {: >20} {: >20}".format("steps:", "scores:", "epsilon:")+"\n")
+    file.write("{: >10} {: >20} {: >20} {: >20}".format("steps:", "scores:", "rewards:", "epsilon:") + "\n")
     for row in np.array(data.get_formatted_data()).T:
-        file.write("{: >20} {: >20} {: >20}".format(*list(row))+"\n")
+        file.write("{: >10} {: >20} {: >20} {: >20}".format(*list(row)) + "\n")
     file.close()
-

@@ -20,13 +20,16 @@ class SnakeEnvironment:
         self.loss = 0
         self.break_out_counter = 0
         self.current_score = 0
+        self.max_iteration_token = 0
 
         # Settings
+        self.max_iterations = 2000
         self.display_gameplay = display_gameplay
         self.graphics_speed = graphics_speed  # chose 1,2,3,4,5,6,7
         self.apple_reward = 2.0
         self.death_punishment = -2.0
-        self.max_iterations = 600
+        self.closer_2_apple_reward = 0.5 * self.apple_reward / self.max_iterations
+        self.longer_from_apple_punishment = - 0.5 * self.apple_reward / self.max_iterations
         self.snake_block_size = self.snake_block_width, self.snake_block_height = 30, 30
         self.apple_block_size = self.apple_block_width, self.apple_block_height = 30, 30
         self.screen_size = self.screen_width, self.screen_height = 600, 600
@@ -47,6 +50,10 @@ class SnakeEnvironment:
 
         self._initialize()
 
+        # In game constants
+        self.max_dist = np.sqrt(
+            (self.screen_width - self.snake_block_width) ** 2 + (self.screen_height - self.snake_block_height) ** 2)
+
         self.snake = Snake(rect=self.snake_block_rect,
                            screen_size=self.screen_size[0],
                            seed=seed)
@@ -55,6 +62,17 @@ class SnakeEnvironment:
                            seed=seed)
 
     # ---- PRIVATE ---- #
+    def __str__(self):
+        str_repr =   "####### Environment settings ####### : \n" \
+                   + "screen_size: " + str(self.__dict__["screen_size"]) + "\n" \
+                   + "snake_block_size: " + str(self.__dict__["snake_block_size"]) + "\n" \
+                   + "grid_size: " + str(self.__dict__["screen_size"][0]//self.__dict__["snake_block_size"][0]) + "\n" \
+                   + "apple_reward: " + str(self.__dict__["apple_reward"]) + "\n" \
+                   + "death_punishment: " + str(self.__dict__["death_punishment"]) + "\n" \
+                   + "closer_2_apple_reward: " + str(self.__dict__["closer_2_apple_reward"]) + "\n" \
+                   + "longer_from_apple_punishment: " + str(self.__dict__["longer_from_apple_punishment"]) + "\n" \
+                   + "max_iterations: " + str(self.__dict__["max_iterations"]) + "\n\n"
+        return str_repr
 
     def _initialize(self):
         self.running = True
@@ -150,8 +168,17 @@ class SnakeEnvironment:
         if self.display_gameplay:
             pygame.quit()
 
-    # ---- PUBLIC ---- #
+    def _distance_2_apple(self) -> float:
+        head_x, head_y = self.snake.get_head().centerx, self.snake.get_head().centery
+        apple_x, apple_y = self.apple.get_apple().centerx, self.apple.get_apple().centery
+        return np.linalg.norm(np.array([head_x, head_y]) - np.array([apple_x, apple_y]))
 
+    def _distance_2_tail(self) -> float:
+        head_x, head_y = self.snake.get_head().centerx, self.snake.get_head().centery
+        tail_x, tail_y = self.snake.get_tail().centerx, self.snake.get_tail().centery
+        return np.linalg.norm(np.array([head_x, head_y]) - np.array([tail_x, tail_y]))
+
+    # ---- PUBLIC ---- #
     def get_state(self):
         # Normalized wall distances
         head = self.snake.get_head()
@@ -172,7 +199,7 @@ class SnakeEnvironment:
                     if head.top >= self.snake.get_body(body).bottom:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                           (self.screen_height - 3 * self.snake_block_height)
+                                       (self.screen_height - 3 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[0]:
                             _snake_danger_state[0] = inverse_dist
 
@@ -182,7 +209,7 @@ class SnakeEnvironment:
                     if head.left >= self.snake.get_body(body).right:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[2]:
                             _snake_danger_state[2] = inverse_dist
 
@@ -190,7 +217,7 @@ class SnakeEnvironment:
                     if head.right <= self.snake.get_body(body).left:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[3]:
                             _snake_danger_state[3] = inverse_dist
 
@@ -201,7 +228,7 @@ class SnakeEnvironment:
                     if head.bottom <= self.snake.get_body(body).top:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                           (self.screen_height - 3 * self.snake_block_height)
+                                       (self.screen_height - 3 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[1]:
                             _snake_danger_state[1] = inverse_dist
 
@@ -211,7 +238,7 @@ class SnakeEnvironment:
                     if head.left >= self.snake.get_body(body).right:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[2]:
                             _snake_danger_state[2] = inverse_dist
 
@@ -219,7 +246,7 @@ class SnakeEnvironment:
                     if head.right <= self.snake.get_body(body).left:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[3]:
                             _snake_danger_state[3] = inverse_dist
 
@@ -230,7 +257,7 @@ class SnakeEnvironment:
                     if head.left >= self.snake.get_body(body).right:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                           (self.screen_height - 3 * self.snake_block_height)
+                                       (self.screen_height - 3 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[2]:
                             _snake_danger_state[2] = inverse_dist
 
@@ -240,7 +267,7 @@ class SnakeEnvironment:
                     if head.top >= self.snake.get_body(body).bottom:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[0]:
                             _snake_danger_state[0] = inverse_dist
 
@@ -248,7 +275,7 @@ class SnakeEnvironment:
                     if head.bottom <= self.snake.get_body(body).top:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[1]:
                             _snake_danger_state[1] = inverse_dist
 
@@ -259,7 +286,7 @@ class SnakeEnvironment:
                     if head.right <= self.snake.get_body(body).left:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                           (self.screen_height - 3 * self.snake_block_height)
+                                       (self.screen_height - 3 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[3]:
                             _snake_danger_state[3] = inverse_dist
 
@@ -269,7 +296,7 @@ class SnakeEnvironment:
                     if head.top >= self.snake.get_body(body).bottom:
                         # Only setting the block closest
                         inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[0]:
                             _snake_danger_state[0] = inverse_dist
 
@@ -277,7 +304,7 @@ class SnakeEnvironment:
                     if head.bottom <= self.snake.get_body(body).top:
                         # Only setting the block closest
                         inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                           (self.screen_height - 2 * self.snake_block_height)
+                                       (self.screen_height - 2 * self.snake_block_height)
                         if inverse_dist > _snake_danger_state[1]:
                             _snake_danger_state[1] = inverse_dist
 
@@ -299,20 +326,17 @@ class SnakeEnvironment:
         _direction_state[int_2_direction[self.snake.get_direction()]] = 1
 
         # Distance to apple
-        max_dist = np.sqrt(
-            (self.screen_width - self.snake_block_width) ** 2 + (self.screen_height - self.snake_block_height) ** 2)
-        dist = np.sqrt((head.centerx - apple.centerx) ** 2 + (head.centery - apple.centery) ** 2)
-        _normalized_apple_dist = [dist / max_dist]
+        _apple_dist = self._distance_2_apple()
+        _normalized_apple_dist = [1 - _apple_dist / self.max_dist]
 
         # Distance to tail
-        tail = self.snake.get_tail()
-        dist = np.sqrt((head.centerx - tail.centerx) ** 2 + (head.centery - tail.centery) ** 2)
-        normalized_tail_dist = [1 - dist / max_dist]
+        _tail_dist = self._distance_2_tail()
+        normalized_tail_dist = [1 - _tail_dist / self.max_dist]
+
 
         return torch.tensor(_wall_danger_state + _snake_danger_state +
                             _apple_state + _direction_state +
                             _normalized_apple_dist + normalized_tail_dist, dtype=torch.float32).reshape(1, -1)
-
 
     def run(self):
         # Spawning snake head (random)
@@ -367,8 +391,18 @@ class SnakeEnvironment:
         self.current_reward = 0
         # Setting snake direction
         self._set_snake_direction(direction=action)
+        # Calculating initial distance to apple
+        s_0_dist = self._distance_2_apple()
         # Updating snake state
         self.snake.update(velocity=self.snake_speed)
+        # Calculating final distance to apple
+        s_1_dist = self._distance_2_apple()
+
+        if s_1_dist < s_0_dist:
+            self.current_reward += self.closer_2_apple_reward
+        else:
+            self.current_reward += self.longer_from_apple_punishment
+
         # If snake has not hit itself or walls
         if not self.snake.dead:
             # Checking whether snake has found apple
@@ -383,6 +417,7 @@ class SnakeEnvironment:
         # Checking that snake hasn't just started looping around
         if self.break_out_counter == self.max_iterations:
             self.running = False
+            self.max_iteration_token = 1
         # Iterating counter that checks for looping snake
         else:
             self.break_out_counter += 1

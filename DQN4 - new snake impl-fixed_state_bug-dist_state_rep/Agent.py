@@ -40,6 +40,7 @@ class Agent:
         self.gamma = gamma
         self.exploration_rate = exploration_rate
         self.exploration_rate_min = exploration_rate_min
+        self.exploration_rate_start = exploration_rate
         self.exploration_decay_rate = exploration_decay_rate
         self.nr_episodes = nr_episodes
         self.mem_size = max_mem_size
@@ -65,8 +66,8 @@ class Agent:
         # ------ Defining optimizer and loss function ------ #
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
 
-        self.loss_func = torch.nn.MSELoss() # Mean squared error (squared L2 norm)
-        # self.loss_func = torch.nn.HuberLoss(delta=1.0)  # Smooth L1 for delta = 1.0
+        self.loss_func = torch.nn.MSELoss()  # Mean squared error (squared L2 norm)
+        #self.loss_func = torch.nn.HuberLoss(delta=1.0)  # Smooth L1 for delta = 1.0
         self.device = self.policy_network.device
 
     def align_networks(self) -> None:
@@ -95,48 +96,62 @@ class Agent:
             return random_action
 
     @staticmethod
-    def stretched_exponential(_episode, nr_episodes,
+    def stretched_exponential(_episode, nr_episodes, eps_0, eps_min,
                               A=0.5, B=0.1, C=0.1):
         """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
         standardized_time = (_episode - A * nr_episodes) / (B * nr_episodes)
         cosh = np.cosh(np.exp(-standardized_time))
-        epsilon = 1.0 - (1.0 / cosh + (_episode * C / nr_episodes))
+        epsilon = eps_min + (eps_0 - eps_min) * (1.0 - (1.0 / cosh + (_episode * C / nr_episodes)))
+        if epsilon > eps_min:
+            return epsilon
+        else:
+            return eps_min
+
+    @staticmethod
+    def stretched_exponential_view(_episode, nr_episodes, eps_0, eps_min,
+                              A=0.5, B=0.1, C=0.1):
+        """https://medium.com/analytics-vidhya/stretched-exponential-decay-function-for-epsilon-greedy-algorithm-98da6224c22f"""
+        standardized_time = (_episode - A * nr_episodes) / (B * nr_episodes)
+        cosh = np.cosh(np.exp(-standardized_time))
+        epsilon = eps_min + (eps_0 - eps_min) * (1.0 - (1.0 / cosh + (_episode * C / nr_episodes)))
         return epsilon
 
     @staticmethod
-    def linear(_episode, current_rate, min_rate, decay_rate):
-        if current_rate > min_rate:
-            return 1.0 - decay_rate * _episode
+    def linear(_episode, current_rate, eps_0, eps_min, decay_rate):
+        if current_rate > eps_min:
+            return eps_0 - decay_rate * _episode
         else:
-            return min_rate
+            return eps_min
 
     @staticmethod
-    def exponential(_episode, min_rate, decay_rate):
-        return min_rate + np.exp(-_episode * decay_rate)
+    def linear_view(_episode, eps_0, decay_rate):
+        return eps_0 - decay_rate * _episode
 
     @staticmethod
-    def oscillator(_episode, nr_episodes,
-                   A=5, B=10):
-        return np.exp(-A / nr_episodes * _episode) * np.cos(B / nr_episodes * _episode) ** 2
+    def exponential(_episode, eps_0, eps_min, decay_rate):
+        return eps_min + (eps_0 - eps_min) * np.exp(-_episode * decay_rate)
 
     @staticmethod
-    def inverse_power(_episode, decay_rate, eps_initial=1.0, power=1.0):
-        return eps_initial/((decay_rate * _episode)**power+1.0)
+    def oscillator(_episode, eps_0, eps_min, nr_episodes,
+                   A=3.5, B=20):
+        return eps_min + (eps_0 - eps_min) * np.exp(-A / nr_episodes * _episode) * np.cos(
+            B / nr_episodes * _episode) ** 2
 
     @staticmethod
-    def exponential_ski_hill(_episode, decay_rate, A=0.5):
-        return 1.0/(np.exp(_episode**(A*decay_rate)-2.0*np.pi)+1)
+    def inverse_power(_episode, decay_rate, eps_0, eps_min, power=1.0):
+        return eps_min + (eps_0 - eps_min) / ((decay_rate * _episode) ** power + 1.0)
+
+    @staticmethod
+    def exponential_ski_hill(_episode, decay_rate, eps_0, eps_min, A=20):
+        return eps_min + (eps_0 - eps_min) / (np.exp((_episode) ** (A * decay_rate) - 2.0 * np.pi) + 1)
 
     def update_exploration_rate(self, episode):
-
-        #self.exploration_rate = self.oscillator(episode, self.nr_episodes)
-        #self.exploration_rate = self.linear(episode, self.exploration_rate, self.exploration_rate_min, self.exploration_decay_rate)
-        #self.exploration_rate = self.exponential(episode, self.exploration_rate_min, self.exploration_decay_rate)
-        #self.exploration_rate = self.inverse_power(episode, self.exploration_decay_rate, power=1.0)
-        #self.exploration_rate = self.stretched_exponential(episode, self.nr_episodes, A=0.5, B=0.15, C=0.01)
-        #self.exploration_rate *= (1.0-self.exploration_decay_rate)
-        self.exploration_rate = self.exponential_ski_hill(episode, self.exploration_decay_rate, A=0.5)
-
+        # self.exploration_rate = self.exponential(episode, self.exploration_rate_start, self.exploration_rate_min,self.exploration_decay_rate)
+        # self.exploration_rate = self.oscillator(episode, self.exploration_rate_start, self.exploration_rate_min, self.nr_episodes)
+        self.exploration_rate = self.linear(episode, self.exploration_rate, self.exploration_rate_start, self.exploration_rate_min, self.exploration_decay_rate)
+        # self.exploration_rate = self.inverse_power(episode, self.exploration_decay_rate, self.exploration_rate_start, self.exploration_rate_min, power=1.0)
+        # self.exploration_rate = self.stretched_exponential(episode, self.nr_episodes, self.exploration_rate_start, self.exploration_rate_min, A=0.5, B=0.15, C=0.01)
+        #self.exploration_rate = self.exponential_ski_hill(episode, self.exploration_decay_rate, self.exploration_rate_start, self.exploration_rate_min)
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:
         """ For collecting all state items in batch in torch tensors (batch_size, nr_channels, height, width)
@@ -145,11 +160,13 @@ class Agent:
         grouped_transitions = Transition(*zip(*random_batch))
 
         state_batch = torch.cat(grouped_transitions.state).to(self.device)
-        action_batch = torch.tensor(list(grouped_transitions.action)).reshape(-1, 1).to(self.device)  # To get column vector
-        reward_batch = torch.tensor(list(grouped_transitions.reward)).reshape(-1, 1).to(self.device)  # To get column vector
+        action_batch = torch.tensor(list(grouped_transitions.action)).reshape(-1, 1).to(
+            self.device)  # To get column vector
+        reward_batch = torch.tensor(list(grouped_transitions.reward)).reshape(-1, 1).to(
+            self.device)  # To get column vector
         new_state_batch = torch.cat(grouped_transitions.next_state).to(self.device)
-        terminal_batch = torch.tensor(list(grouped_transitions.done_flag)).reshape(-1, 1).to(self.device)  # To get column vector
-
+        terminal_batch = torch.tensor(list(grouped_transitions.done_flag)).reshape(-1, 1).to(
+            self.device)  # To get column vector
         return state_batch, action_batch, reward_batch, new_state_batch, terminal_batch
 
     def learn(self, time):
@@ -187,10 +204,10 @@ class Agent:
             self.update_exploration_rate(time)
 
     def __str__(self):
-        str_repr = "####### Optimizer ####### : \n "
+        str_repr = "####### Optimizer ####### : \n"
         str_repr += self.optimizer.__str__() + "\n\n"
-        str_repr += "####### Loss function ####### : \n "
+        str_repr += "####### Loss function ####### : \n"
         str_repr += self.loss_func.__str__() + "\n\n"
-        str_repr += "####### Network structure #######: \n "
+        str_repr += "####### Network structure #######: \n"
         str_repr += self.policy_network.__str__()
         return str_repr
