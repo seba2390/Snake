@@ -1,7 +1,9 @@
+import torch
+
 from Util import *
 from GameObjects import *
 import numpy as np
-
+import torchvision.transforms.functional as fn
 
 class SnakeEnvironment:
     def __init__(self, seed, neural_net=None, display_gameplay: bool = True, graphics_speed: int = 1):
@@ -32,9 +34,8 @@ class SnakeEnvironment:
         self.longer_from_apple_punishment = - 0.5 * self.apple_reward / self.max_iterations
         self.snake_block_size = self.snake_block_width, self.snake_block_height = 30, 30
         self.apple_block_size = self.apple_block_width, self.apple_block_height = 30, 30
-        self.screen_size = self.screen_width, self.screen_height = 180,180
+        self.screen_size = self.screen_width, self.screen_height = 600,600
         self.snake_speed = self.snake_block_width  # pixels pr. frame
-        self.snake_max_length = (self.screen_width // self.snake_block_width)**2 - 1
 
         if self.display_gameplay:
             self.running = True
@@ -181,173 +182,46 @@ class SnakeEnvironment:
 
     # ---- PUBLIC ---- #
     def get_state(self):
-        # Normalized wall distances
+        screen_size = self.screen_width
+        grid = torch.zeros(size=(screen_size, screen_size), dtype=torch.float32)
+
+        # Setting boundaries
+        #grid[0] = grid[grid_size + 1] = grid[:, 0] = grid[:, grid_size + 1] = 1
+
+        # Placing head
         head = self.snake.get_head()
-        _wall_danger_state = [0, 0, 0, 0]
-        _wall_danger_state[0] = 1 - head.top / (self.screen_height - self.snake_block_height)
-        _wall_danger_state[1] = 1 - (self.screen_height - head.bottom) / (self.screen_height - self.snake_block_height)
-        _wall_danger_state[2] = 1 - head.left / (self.screen_width - self.snake_block_width)
-        _wall_danger_state[3] = 1 - (self.screen_width - head.right) / (self.screen_width - self.snake_block_width)
+        head_x = head.left #// self.snake_block_width
+        head_y = head.top #// self.snake_block_width
+        for i in range(self.screen_width // self.snake_block_width):
+            for j in range(self.screen_width // self.snake_block_width):
+                grid[head_y + i][head_x + j] = 0.75
 
-        # Normalized snake body distances
-        _snake_danger_state = [0, 0, 0, 0]  # up,down,left,right
-        _current_dir = self.snake.get_direction()
-        for body in range(1, self.snake.snake_length):
-            if _current_dir == "up":
-                # Body part in same col as head
-                if head.left == self.snake.get_body(body).left:
-                    # Body part in front of head (upwards)
-                    if head.top >= self.snake.get_body(body).bottom:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                       (self.screen_height - 3 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[0]:
-                            _snake_danger_state[0] = inverse_dist
+        # Placing body
+        for body_idx in range(1, self.snake.snake_length):
+            body = self.snake.get_body(index=body_idx)
+            body_x = body.left #// self.snake_block_width
+            body_y = body.top #// self.snake_block_width
+            for i in range(self.screen_width // self.snake_block_width):
+                for j in range(self.screen_width // self.snake_block_width):
+                    grid[body_y + i][body_x + j] = 0.75/2.0
 
-                # Body part in same row as head
-                if head.bottom == self.snake.get_body(body).bottom:
-                    # Body part to the left of head
-                    if head.left >= self.snake.get_body(body).right:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[2]:
-                            _snake_danger_state[2] = inverse_dist
-
-                    # Body part to the right of head
-                    if head.right <= self.snake.get_body(body).left:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[3]:
-                            _snake_danger_state[3] = inverse_dist
-
-            elif _current_dir == "down":
-                # Body part in same col as head
-                if head.left == self.snake.get_body(body).left:
-                    # Body part in front of head (downwards)
-                    if head.bottom <= self.snake.get_body(body).top:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                       (self.screen_height - 3 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[1]:
-                            _snake_danger_state[1] = inverse_dist
-
-                # Body part in same row as head
-                if head.bottom == self.snake.get_body(body).bottom:
-                    # Body part to the left of head
-                    if head.left >= self.snake.get_body(body).right:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[2]:
-                            _snake_danger_state[2] = inverse_dist
-
-                    # Body part to the right of head (leftwards)
-                    if head.right <= self.snake.get_body(body).left:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[3]:
-                            _snake_danger_state[3] = inverse_dist
-
-            elif _current_dir == "left":
-                # Body part in same row as head
-                if head.bottom == self.snake.get_body(body).bottom:
-                    # Body part in front of head (leftwards)
-                    if head.left >= self.snake.get_body(body).right:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.left - self.snake.get_body(body).right) / \
-                                       (self.screen_height - 3 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[2]:
-                            _snake_danger_state[2] = inverse_dist
-
-                # Body part in same col as head
-                if head.left == self.snake.get_body(body).left:
-                    # Body part to the right (upwards) of head
-                    if head.top >= self.snake.get_body(body).bottom:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[0]:
-                            _snake_danger_state[0] = inverse_dist
-
-                    # Body part to the left (downwards) of head
-                    if head.bottom <= self.snake.get_body(body).top:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[1]:
-                            _snake_danger_state[1] = inverse_dist
-
-            elif _current_dir == "right":
-                # Body part in same row as head
-                if head.bottom == self.snake.get_body(body).bottom:
-                    # Body part in front of head (rightwards)
-                    if head.right <= self.snake.get_body(body).left:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).left - head.right) / \
-                                       (self.screen_height - 3 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[3]:
-                            _snake_danger_state[3] = inverse_dist
-
-                # Body part in same col as head
-                if head.left == self.snake.get_body(body).left:
-                    # Body part to the left of head (upwards)
-                    if head.top >= self.snake.get_body(body).bottom:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (head.top - self.snake.get_body(body).bottom) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[0]:
-                            _snake_danger_state[0] = inverse_dist
-
-                    # Body part to the right of head
-                    if head.bottom <= self.snake.get_body(body).top:
-                        # Only setting the block closest
-                        inverse_dist = 1 - (self.snake.get_body(body).top - head.bottom) / \
-                                       (self.screen_height - 2 * self.snake_block_height)
-                        if inverse_dist > _snake_danger_state[1]:
-                            _snake_danger_state[1] = inverse_dist
-
-        # Normalized apple distances
-        _apple_state = [0, 0, 0, 0]
+        # Placing apple
         apple = self.apple.get_apple()
-        if apple.bottom <= head.top:
-            _apple_state[0] = 1 - (head.top - apple.bottom) / (self.screen_height - 2 * self.snake_block_height)
-        if apple.top >= head.bottom:
-            _apple_state[1] = 1 - (apple.top - head.bottom) / (self.screen_height - 2 * self.snake_block_height)
-        if apple.right <= head.left:
-            _apple_state[2] = 1 - (head.left - apple.right) / (self.screen_height - 2 * self.snake_block_height)
-        if apple.left >= head.right:
-            _apple_state[3] = 1 - (apple.left - head.right) / (self.screen_height - 2 * self.snake_block_height)
-
-        # Checking current direction
-        int_2_direction = {"up": 0, "down": 1, "left": 2, "right": 3}
-        _direction_state = [0, 0, 0, 0]
-        _direction_state[int_2_direction[self.snake.get_direction()]] = 1
-
-        # Distance to apple
-        _apple_dist = self._distance_2_apple()
-        _normalized_apple_dist = [1 - _apple_dist / self.max_dist]
-
-        # Distance to tail
-        _tail_dist = self._distance_2_tail()
-        normalized_tail_dist = [1 - _tail_dist / self.max_dist]
-
-
-        return torch.tensor(_wall_danger_state + _snake_danger_state +
-                            _apple_state + _direction_state +
-                            _normalized_apple_dist + normalized_tail_dist, dtype=torch.float32).reshape(1, -1)
+        apple_x = apple.left #// self.apple_block_width
+        apple_y = apple.top #// self.apple_block_width
+        for i in range(self.screen_width // self.snake_block_width):
+            for j in range(self.screen_width // self.snake_block_width):
+                grid[apple_y + i][apple_x + j] = 1
+        grid = fn.resize(img=grid.resize_(1,1,self.screen_width,self.screen_width), size=[84])
+        return grid
 
     def run(self):
-        step_counter = 0
         # Spawning snake head (random)
         self.snake.initialize()
         # Spawning apple in remaining available space (random)
         self.apple.initialize(grid=self.snake.get_grid())
         # Main loop
         while self.running:
-            step_counter += 1
             # Rendering screen
             self._in_game_render()
             # Directing snake according either to neural net or user input
@@ -373,15 +247,10 @@ class SnakeEnvironment:
             # Checking that snake hasn't just started looping around
             if self.break_out_counter == self.max_iterations:
                 self.running = False
-            # If snake has reached maximum length
-            if self.snake.snake_length == self.snake_max_length:
-                #print("Game completed, w. snake_length: ", self.snake.snake_length, "and: ", step_counter , "steps taken.")
-                self.running = False
             # Iterating counter that checks for looping snake
             else:
                 self.break_out_counter += 1
         self._close_window()
-        return step_counter
 
     def initialize_environment(self):
         """ Wrapper for spawning snake head
@@ -426,11 +295,6 @@ class SnakeEnvironment:
         if self.break_out_counter == self.max_iterations:
             self.running = False
             self.max_iteration_token = 1
-        # If snake has reached maximum length
-        if self.snake.snake_length == self.snake_max_length:
-            #print("Game completed:", self.snake.snake_length, len(self.snake._snake_blocks))
-            self.running = False
-            self.current_reward += 5
         # Iterating counter that checks for looping snake
         else:
             self.break_out_counter += 1

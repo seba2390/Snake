@@ -1,3 +1,0 @@
-- Using binary encoded state space
-- Snake starts in same place with same direction each time
-- Q table is a numpy array where states (rows) are indexed by the integer value that the binary encoded state corresponds to

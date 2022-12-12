@@ -14,10 +14,10 @@ class DeepQNetwork(torch.nn.Module):
         self.nr_actions = nr_actions
 
         # ----------- Defining Layers in Neural Net ------------ #
-        self.lin1 = torch.nn.Linear(in_features=self.input_size, out_features=self.input_size*30)
-        self.lin2 = torch.nn.Linear(in_features=self.input_size*30, out_features=self.input_size*15)
-        self.lin3 = torch.nn.Linear(in_features=self.input_size*15, out_features=self.nr_actions)
-        self.rectifier1 = torch.nn.ReLU()
+        self.lin1 = torch.nn.Linear(in_features=self.input_size, out_features=self.input_size*100)
+        #self.lin2 = torch.nn.Linear(in_features=self.input_size*30, out_features=self.input_size*15)
+        self.lin3 = torch.nn.Linear(in_features=self.input_size*100, out_features=self.nr_actions)
+        self.rectifier1 = torch.nn.LeakyReLU(0.1)
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
@@ -25,6 +25,6 @@ class DeepQNetwork(torch.nn.Module):
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         state = state.to(self.device)
         state = self.rectifier1(self.lin1(state))
-        state = self.rectifier1(self.lin2(state))
+        #state = self.rectifier1(self.lin2(state))
         state = self.lin3(state)
         return state

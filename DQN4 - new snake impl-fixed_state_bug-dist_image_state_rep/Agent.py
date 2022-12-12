@@ -143,16 +143,15 @@ class Agent:
 
     @staticmethod
     def exponential_ski_hill(_episode, decay_rate, eps_0, eps_min, A=20):
-        val = eps_min + (eps_0 - eps_min) / (np.exp((_episode) ** (A * decay_rate) - 2.0 * np.pi) + 1)
-        return val
+        return eps_min + (eps_0 - eps_min) / (np.exp((_episode) ** (A * decay_rate) - 2.0 * np.pi) + 1)
 
     def update_exploration_rate(self, episode):
         # self.exploration_rate = self.exponential(episode, self.exploration_rate_start, self.exploration_rate_min,self.exploration_decay_rate)
         # self.exploration_rate = self.oscillator(episode, self.exploration_rate_start, self.exploration_rate_min, self.nr_episodes)
-        # self.exploration_rate = self.linear(episode, self.exploration_rate, self.exploration_rate_start, self.exploration_rate_min, self.exploration_decay_rate)
+        self.exploration_rate = self.linear(episode, self.exploration_rate, self.exploration_rate_start, self.exploration_rate_min, self.exploration_decay_rate)
         # self.exploration_rate = self.inverse_power(episode, self.exploration_decay_rate, self.exploration_rate_start, self.exploration_rate_min, power=1.0)
-        # self.exploration_rate = self.stretched_exponential(episode, self.nr_episodes, self.exploration_rate_start, self.exploration_rate_min, A=0.175, B=0.15, C=0.01)
-        self.exploration_rate = self.exponential_ski_hill(episode, self.exploration_decay_rate, self.exploration_rate_start, self.exploration_rate_min)
+        # self.exploration_rate = self.stretched_exponential(episode, self.nr_episodes, self.exploration_rate_start, self.exploration_rate_min, A=0.5, B=0.15, C=0.01)
+        #self.exploration_rate = self.exponential_ski_hill(episode, self.exploration_decay_rate, self.exploration_rate_start, self.exploration_rate_min)
 
     def sample_memory(self) -> tuple[torch.Tensor, ...]:
         """ For collecting all state items in batch in torch tensors (batch_size, nr_channels, height, width)
